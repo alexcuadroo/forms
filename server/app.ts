@@ -17,6 +17,7 @@ import {
   blank,
   uuid,
   checkDraft,
+  publicationDraft,
   visible,
   answerError,
   mediaIds,
@@ -156,9 +157,10 @@ adm.delete("/forms/:id", async (req, res) => {
   res.json({ ok: true });
 });
 adm.put("/forms/:id", async (req, res) => {
-  const { draft, revision, publish } = req.body;
-  const error = checkDraft(draft, publish);
+  const { revision, publish } = req.body;
+  const error = checkDraft(req.body.draft, publish);
   if (error) fail(400, error);
+  const draft: Draft = publish ? publicationDraft(req.body.draft) : req.body.draft;
   res.json(
     await tx(async (db) => {
       const f = await owned(req, db, true);

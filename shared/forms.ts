@@ -32,7 +32,7 @@ export type Answers = Record<string, string | string[]>;
 export const choice = (type: Kind) =>
   ["single", "multi", "select", "bool"].includes(type);
 export const options = (q: Question) =>
-  q.type === "bool" ? ["Verdadero", "Falso"] : q.options;
+  q.type === "bool" ? ["Verdadero", "Falso"] : q.options.filter(option => option.trim());
 export const categories = ["Imagen", "Video", "PDF", "Documento"];
 export const fonts = ["Inter", "Georgia", "Verdana", "monospace"];
 export const blank = (): Draft => ({
@@ -81,7 +81,16 @@ export function visible(questions: Question[], answers: Answers) {
 export const uuid = (v: unknown): v is string =>
   typeof v === "string" &&
   /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v);
-export function checkDraft(d: Draft, publishing = false) {
+export function publicationDraft(d: Draft): Draft {
+  return {
+    ...d,
+    questions: d.questions.map(q => choice(q.type) && q.type !== "bool"
+      ? { ...q, options: options(q) }
+      : q),
+  };
+}
+
+export function draftIssue(d: Draft, publishing = false): { message: string; index?: number } | undefined {
   const str = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
   const asset = (v: unknown) => v === "" || uuid(v);
   if (
@@ -96,11 +105,12 @@ export function checkDraft(d: Draft, publishing = false) {
     ) ||
     !asset(d.theme.image)
   )
-    return "Revisá el título y el diseño.";
+    return { message: "Revisá el título y el diseño." };
   if (publishing && (!d.title.trim() || !d.questions.length))
-    return "Añadí un título y al menos una pregunta.";
+    return { message: "Añadí un título y al menos una pregunta." };
   const prior = new Map<string, Question>();
-  for (const q of d.questions) {
+  for (const [index, q] of d.questions.entries()) {
+    const issue = (message: string) => ({ index, message: `Pregunta ${index + 1}: ${message}` });
     if (
       !q ||
       !uuid(q.id) ||
@@ -117,31 +127,35 @@ export function checkDraft(d: Draft, publishing = false) {
       !Array.isArray(q.categories) ||
       !q.categories.every((c) => categories.includes(c))
     )
-      return "Hay una pregunta inválida.";
-    if (
-      publishing &&
-      (!q.title.trim() ||
-        (choice(q.type) &&
-          (!options(q).length ||
-            options(q).some((o) => !o.trim()) ||
-            new Set(options(q)).size !== options(q).length)) ||
-        (q.type === "file" && !q.categories.length))
-    )
-      return "Completá el título y las opciones de cada pregunta.";
+      return issue("hay datos inválidos.");
+    if (publishing) {
+      if (!q.title.trim()) return issue("escribí el título.");
+      if (choice(q.type)) {
+        const values = options(q);
+        if (!values.length) return issue("añadí al menos una opción.");
+        const repeated = values.find((value, i) => values.indexOf(value) !== i);
+        if (repeated) return issue(`la opción «${repeated}» está repetida.`);
+      }
+      if (q.type === "file" && !q.categories.length)
+        return issue("seleccioná al menos un tipo de archivo permitido.");
+    }
     for (const r of q.rules) {
       const src = r && prior.get(r.source);
       if (!src || !operators(src.type).includes(r.op) || !str(r.value, 2000))
-        return "La condición debe referirse a una pregunta anterior compatible.";
+        return issue("la condición debe referirse a una pregunta anterior compatible.");
       if (
         publishing &&
         r.op !== "respondida" &&
         (!r.value.trim() ||
           (choice(src.type) && !options(src).includes(r.value)))
       )
-        return "Revisá el valor de la condición.";
+        return issue("revisá el valor de la condición de visibilidad.");
     }
     prior.set(q.id, q);
   }
+}
+export function checkDraft(d: Draft, publishing = false) {
+  return draftIssue(d, publishing)?.message;
 }
 export function answerError(q: Question, v: unknown) {
   if (!filled(v))

@@ -6,14 +6,30 @@ services:
       - "3000"
     environment:
       PGHOST: form_db
-      PGUSER: forms
+      PGUSER: forms_app
       PGDATABASE: forms
-      PGPASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+      PGPASSWORD: ${FORMS_DB_PASSWORD:?Configura FORMS_DB_PASSWORD}
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-https://forms.edualex.uy}
       AUTH_URL: ${AUTH_URL:-https://auth.edualex.uy}
       UPLOAD_DIR: /data/uploads
     volumes:
       - uploads:/data/uploads
+    depends_on:
+      form_db_setup:
+        condition: service_completed_successfully
+  form_db_setup:
+    image: postgres:17-bookworm
+    restart: "no"
+    user: postgres
+    command: ["psql", "-X", "-v", "ON_ERROR_STOP=1", "-f", "/setup.sql"]
+    environment:
+      PGHOST: form_db
+      PGDATABASE: forms
+      PGUSER: forms
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+      FORMS_DB_PASSWORD: ${FORMS_DB_PASSWORD:?Configura FORMS_DB_PASSWORD}
+    volumes:
+      - ./docker/setup.sql:/setup.sql:ro
     depends_on:
       form_db:
         condition: service_healthy
@@ -27,7 +43,7 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U forms -d forms"]
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "forms", "-d", "forms"]
       interval: 5s
       timeout: 4s
       retries: 12

@@ -25,6 +25,8 @@ import {
   categories,
   fonts,
   checkDraft,
+  draftIssue,
+  publicationDraft,
 } from "../shared/forms.ts";
 import {
   api,
@@ -72,24 +74,43 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
     edit({ rules: q.rules.map((r, n) => (n === i ? { ...r, ...p } : r)) });
   }
   async function persist(publish: boolean) {
-    const error = checkDraft(d, publish);
-    if (error) {
-      toast.warning(error);
+    const issue = draftIssue(d, publish);
+    if (issue) {
+      if (issue.index !== undefined) {
+        view("Preguntas");
+        select(issue.index);
+      }
+      toast.warning(issue.message, { id: "draft-validation" });
       return;
     }
     wait(true);
     try {
       const f = await api<Form>("/admin/forms/" + form.id, "PUT", {
-        draft: d,
+        draft: publish ? publicationDraft(d) : d,
         revision: saved.revision,
         publish,
       });
-      save(f);
-      toast.success(
-        publish
-          ? "Publicado en " + location.origin + "/" + f.slug
-          : "Borrador guardado.",
-      );
+      toast.dismiss("draft-validation");
+      if (!publish) {
+        save(f);
+        set(f.draft);
+        toast.success("Borrador guardado.");
+        return;
+      }
+      back();
+      const notice = toast.success("Formulario publicado.");
+      if (f.slug) {
+        const link = new URL("/" + f.slug, location.origin).href;
+        try {
+          await navigator.clipboard.writeText(link);
+          toast.success("Formulario publicado. Enlace copiado.", { id: notice, description: link });
+        } catch {
+          toast.warning("Formulario publicado. No se pudo copiar el enlace.", {
+            id: notice,
+            description: "Usá «Copiar enlace» en el panel.",
+          });
+        }
+      }
     } catch (e) {
       toast.error(msg(e));
     } finally {

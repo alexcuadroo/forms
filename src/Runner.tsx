@@ -170,7 +170,7 @@ export function Runner({
                 onChange={(e) => update(e.target.value)}
               >
                 <option value="">Elegí una opción</option>
-                {q.options.map((o) => (
+                {options(q).map((o) => (
                   <option key={o}>{o}</option>
                 ))}
               </select>

@@ -2,7 +2,9 @@
 
 ## Dokploy
 
-Creá una aplicación Docker Compose desde este directorio y seleccioná `docker-compose.yml`. Configurá `POSTGRES_PASSWORD` con una contraseña aleatoria y desplegá. En Domains, asociá `forms.edualex.uy` al servicio `form_app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El chequeo `GET /api/health` verifica la conexión a PostgreSQL.
+Creá una aplicación Docker Compose desde el repositorio y seleccioná `docker-compose.yml`. Configurá dos contraseñas aleatorias y distintas en Dokploy. `POSTGRES_PASSWORD` corresponde al administrador de PostgreSQL y `FORMS_DB_PASSWORD` al usuario del backend. En Domains, asociá `forms.edualex.uy` al servicio `form_app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El healthcheck de la imagen consulta `GET /api/health` y verifica la conexión a PostgreSQL.
+
+Para actualizar un despliegue existente, conservá los volúmenes y el valor actual de `POSTGRES_PASSWORD`, agregá `FORMS_DB_PASSWORD` y redesplegá. El servicio `form_db_setup` prepara el rol `forms_app` y le transfiere las tablas existentes en una transacción. El backend arranca cuando ese servicio termina correctamente. Para rotar la clave del backend, cambiá `FORMS_DB_PASSWORD` y volvé a desplegar el Compose.
 
 En el panel central de auth registrá la aplicación con slug `forms`, URL `https://forms.edualex.uy` y rol permitido `docente`. Agregá también `https://forms.edualex.uy` a `TRUSTED_ORIGINS` del servicio central. El backend revalida la sesión y el acceso en cada petición privada: pueden entrar docentes de cualquier plan y administradores. El plan solo determina la cuota de almacenamiento; no concede ni bloquea el acceso. Los visitantes entran desde el enlace de cuatro caracteres.
 

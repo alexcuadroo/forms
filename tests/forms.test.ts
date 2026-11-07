@@ -5,6 +5,8 @@ import {
   blank,
   question,
   checkDraft,
+  draftIssue,
+  publicationDraft,
   visible,
   answerError,
 } from "../shared/forms.ts";
@@ -45,4 +47,19 @@ test("valida URL, opciones y obligatoriedad", () => {
   assert.ok(answerError({ ...first, required: true }, " "));
   assert.ok(answerError(first, "Otro"));
   assert.ok(answerError({ ...first, type: "multi" }, ["Opción 1", "Opción 1"]));
+});
+
+test("publica la selección múltiple con líneas vacías y conserva las opciones y reglas", () => {
+  const multi: Question = { ...second, type: "multi", options: ["Opción 1", "", "Opción 2", "OTRA OPCION", " "] };
+  const draft = { ...blank(), questions: [first, multi, third] };
+  assert.equal(checkDraft(draft, true), undefined);
+  const published = publicationDraft(draft);
+  assert.deepEqual(published.questions[1].options, ["Opción 1", "Opción 2", "OTRA OPCION"]);
+  assert.deepEqual(published.questions[1].rules, multi.rules);
+  assert.equal(multi.options.length, 5);
+  for (const invalid of [[" "], ["Uno", "", "Uno"]]) {
+    const issue = draftIssue({ ...draft, questions: [first, { ...multi, options: invalid }] }, true);
+    assert.equal(issue?.index, 1);
+    assert.match(issue!.message, /opción/);
+  }
 });
