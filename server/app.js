@@ -43,7 +43,7 @@ app.use("/api/admin", adm);
 adm.use(async (req, res, next) => {
   let data;
   try {
-    const r = await fetch(auth + "/api/access/check?app=form", {
+    const r = await fetch(auth + "/api/access/check?app=forms", {
       headers: { cookie: req.headers.cookie || "" },
       redirect: "manual",
       signal: AbortSignal.timeout(3000),
@@ -65,12 +65,9 @@ adm.use(async (req, res, next) => {
   if (
     !data.allowed ||
     !u?.id ||
-    !(
-      u.role === "admin" ||
-      (u.role === "docente" && ["pro", "plus"].includes(u.plan))
-    )
+    !(u.role === "admin" || u.role === "docente")
   )
-    fail(403, "Se requiere rol docente con plan Plus o Pro.");
+    fail(403, "Se requiere rol docente o admin y acceso habilitado en auth central.");
   req.user = u;
   await pool.query(
     "INSERT INTO owners VALUES($1,$2) ON CONFLICT(id) DO UPDATE SET quota=excluded.quota WHERE owners.quota<>excluded.quota",

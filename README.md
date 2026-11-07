@@ -4,7 +4,7 @@
 
 Creá una aplicación Docker Compose desde este directorio y seleccioná `docker-compose.yml`. Configurá `POSTGRES_PASSWORD` con una contraseña aleatoria y desplegá. En Domains, asociá `forms.edualex.uy` al servicio `form_app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El chequeo `GET /api/health` verifica la conexión a PostgreSQL.
 
-En el panel central de auth registrá la aplicación con slug `form`, URL `https://forms.edualex.uy` y rol permitido `docente`. El backend revalida la sesión y el plan en cada petición privada. El rol admin central también tiene acceso. Los visitantes entran desde el enlace de cuatro caracteres.
+En el panel central de auth registrá la aplicación con slug `forms`, URL `https://forms.edualex.uy` y rol permitido `docente`. Agregá también `https://forms.edualex.uy` a `TRUSTED_ORIGINS` del servicio central. El backend revalida la sesión y el acceso en cada petición privada: pueden entrar docentes de cualquier plan y administradores. El plan solo determina la cuota de almacenamiento; no concede ni bloquea el acceso. Los visitantes entran desde el enlace de cuatro caracteres.
 
 Los volúmenes `postgres` y `uploads` deben conservarse entre despliegues. Para comprobar persistencia, publicá un formulario con archivo, enviá una respuesta, reiniciá ambos servicios y abrí el adjunto desde Resultados. Respaldá ambos volúmenes de forma coordinada.
 
