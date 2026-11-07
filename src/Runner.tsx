@@ -96,7 +96,11 @@ export function Runner({
     : undefined;
   return (
     <main
-      className={"runner " + (mobile ? "mobile" : "")}
+      className={"runner " + (slug ? "runner-protected " : "") + (mobile ? "mobile" : "")}
+      onContextMenu={slug ? (e) => e.preventDefault() : undefined}
+      onCopy={slug ? (e) => e.preventDefault() : undefined}
+      onCut={slug ? (e) => e.preventDefault() : undefined}
+      onDragStart={slug ? (e) => e.preventDefault() : undefined}
       style={
         {
           backgroundColor: draft.theme.background,

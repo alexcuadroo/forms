@@ -314,6 +314,16 @@ summary {
   padding: clamp(18px, 5vw, 65px);
   color: var(--ink, #202e29);
 }
+.runner-protected {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.runner-protected input,
+.runner-protected textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
 .runner header,
 .runner footer {
   display: flex;
