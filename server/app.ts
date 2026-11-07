@@ -225,7 +225,9 @@ adm.get("/files/:file", async (req, res) => {
         [req.params.file, req.user.id],
       )
     : undefined;
-  sendFile(res, f, f?.kind === "media");
+  const previewable = f && /^(image\/(jpeg|png|gif|webp|avif)|video\/(mp4|webm|quicktime)|application\/pdf|text\/plain)$/.test(f.mime);
+  res.set("Cache-Control", "private, no-store");
+  sendFile(res, f, req.query.download !== "1" && (f?.kind === "media" || !!previewable));
 });
 adm.get("/forms/:id/results", async (req, res) => {
   const f = await owned(req);
@@ -243,7 +245,7 @@ adm.get("/forms/:id/results", async (req, res) => {
   ).rows;
   const files = (
     await pool.query(
-      "SELECT id,name FROM files WHERE form=$1 AND response IS NOT NULL",
+      "SELECT id,name,mime,bytes FROM files WHERE form=$1 AND response IS NOT NULL",
       [f.id],
     )
   ).rows;
