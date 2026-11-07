@@ -40,7 +40,14 @@ type Dashboard = {
   user: { name: string; plan: string };
 };
 function Public({ slug }: { slug: string }) {
-  const { data: v, failed, reload } = useResource<{ body: Draft; version: number }>("/public/" + slug);
+  const { data: v, failed, status, reload } = useResource<{ body: Draft; version: number }>("/public/" + slug, 410);
+  if (status === 410) return (
+    <main className="runner runner-closed">
+      <section>
+        <h1>Este formulario ya no acepta respuestas</h1>
+      </section>
+    </main>
+  );
   return v ? (
     <Runner draft={v.body} slug={slug} version={v.version} />
   ) : (

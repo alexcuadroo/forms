@@ -314,6 +314,10 @@ summary {
   padding: clamp(18px, 5vw, 65px);
   color: var(--ink, #202e29);
 }
+.runner.runner-closed {
+  justify-content: center;
+  text-align: center;
+}
 .runner-protected {
   -webkit-user-select: none;
   user-select: none;

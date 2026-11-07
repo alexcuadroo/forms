@@ -9,6 +9,13 @@ export type Form = {
   revision: number;
   closed: boolean;
 };
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 export async function api<T = unknown>(
   url: string,
   method = "GET",
@@ -24,7 +31,7 @@ export async function api<T = unknown>(
   const data = await r.json();
   if (!r.ok) {
     if (data.login) location.assign(data.login);
-    throw Error(data.error || "Falló la conexión.");
+    throw new ApiError(data.error || "Falló la conexión.", r.status);
   }
   return data;
 }
