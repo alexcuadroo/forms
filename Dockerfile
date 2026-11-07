@@ -14,4 +14,4 @@ COPY shared ./shared
 COPY --from=build /app/dist ./dist
 USER node
 EXPOSE 3000
-CMD ["node","server/app.js"]
+CMD ["node","server/app.ts"]

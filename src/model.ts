@@ -1,13 +1,6 @@
-import { blank, question, labels } from "../shared/forms.js";
-export type Kind = keyof typeof labels;
-export type Rule = { source: string; op: string; value: string };
-export type Q = Omit<ReturnType<typeof question>, "rules" | "type"> & {
-  type: Kind;
-  rules: Rule[];
-};
-export type Draft = Omit<ReturnType<typeof blank>, "questions"> & {
-  questions: Q[];
-};
+import type { Draft } from "../shared/forms.ts";
+export type { Answers, Draft, Kind, Question as Q, Rule } from "../shared/forms.ts";
+
 export type Form = {
   id: string;
   slug: string | null;
@@ -16,14 +9,15 @@ export type Form = {
   revision: number;
   closed: boolean;
 };
-export type Answers = Record<string, string | string[]>;
-export async function api<T = any>(
+export async function api<T = unknown>(
   url: string,
   method = "GET",
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<T> {
   const r = await fetch("/api" + url, {
     method,
+    signal,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });

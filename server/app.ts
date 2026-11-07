@@ -1,7 +1,10 @@
-import express from "express";
+import express, { type Request, type ErrorRequestHandler } from "express";
+import type { Database } from "./db.ts";
+import type { Draft, Answers } from "../shared/forms.ts";
+
 import path from "node:path";
 import { randomUUID, randomInt } from "node:crypto";
-import { pool, first, tx, fail, migrate } from "./db.js";
+import { pool, first, tx, fail, migrate } from "./db.ts";
 import {
   limit,
   upload,
@@ -9,7 +12,7 @@ import {
   discard,
   cleanup,
   retainMedia,
-} from "./files.js";
+} from "./files.ts";
 import {
   blank,
   uuid,
@@ -17,7 +20,26 @@ import {
   visible,
   answerError,
   mediaIds,
-} from "../shared/forms.js";
+} from "../shared/forms.ts";
+type User = { id: string; role: string; plan: string; name: string };
+declare global {
+  namespace Express {
+    interface Request {
+      user: User;
+    }
+  }
+}
+type FormRow = {
+  id: string;
+  owner: string;
+  draft: Draft;
+  version: number;
+  slug: string | null;
+  revision: number;
+  closed: boolean;
+};
+type FileRow = { id: string; mime: string; name: string; kind: string };
+
 const app = express();
 const origin = process.env.PUBLIC_ORIGIN || "https://forms.edualex.uy";
 const auth = process.env.AUTH_URL || "https://auth.edualex.uy";
@@ -41,7 +63,7 @@ app.get("/api/health", async (req, res) => {
 const adm = express.Router();
 app.use("/api/admin", adm);
 adm.use(async (req, res, next) => {
-  let data;
+  let data: { authenticated: boolean; allowed: boolean; user?: User };
   try {
     const r = await fetch(auth + "/api/access/check?app=forms", {
       headers: { cookie: req.headers.cookie || "" },
@@ -71,13 +93,13 @@ adm.use(async (req, res, next) => {
   req.user = u;
   await pool.query(
     "INSERT INTO owners VALUES($1,$2) ON CONFLICT(id) DO UPDATE SET quota=excluded.quota WHERE owners.quota<>excluded.quota",
-    [u.id, { pro: 5e9, plus: 1e9 }[u.plan] || 250e6],
+    [u.id, ({ pro: 5e9, plus: 1e9 } as Record<string, number>)[u.plan] || 250e6],
   );
   next();
 });
-const owned = async (req, db = pool, lock = false) => {
+const owned = async (req: Request, db: Database = pool, lock = false) => {
   if (!uuid(req.params.id)) fail(404, "Formulario no encontrado.");
-  const f = await first(
+  const f = await first<FormRow>(
     db,
     "SELECT * FROM forms WHERE id=$1 AND owner=$2" +
       (lock ? " FOR UPDATE" : ""),
@@ -88,17 +110,22 @@ const owned = async (req, db = pool, lock = false) => {
 };
 adm.get("/forms", async (req, res) => {
   const forms = (
-    await pool.query(
-      "SELECT f.id,f.slug,f.closed,f.version,f.updated,f.draft->>'title' title,jsonb_array_length(f.draft->'questions') questions,(SELECT count(*) FROM responses r WHERE r.form=f.id)::int responses FROM forms f WHERE owner=$1 ORDER BY updated DESC",
+    await pool.query<{ fileBytes: number }>(
+      `SELECT f.id, f.slug, f.closed, f.version, f.updated, f.draft->>'title' AS title,
+              jsonb_array_length(f.draft->'questions') AS questions,
+              (SELECT count(*) FROM responses r WHERE r.form=f.id)::int AS responses,
+              (SELECT COALESCE(sum(bytes), 0) FROM files WHERE form=f.id)::float8 AS "fileBytes"
+       FROM forms f WHERE owner=$1 ORDER BY updated DESC`,
       [req.user.id],
     )
   ).rows;
-  const storage = await first(
+  const owner = await first<{ quota: string }>(
     pool,
-    "SELECT quota,(SELECT COALESCE(sum(bytes),0) FROM files JOIN forms ON forms.id=files.form WHERE forms.owner=$1) used FROM owners WHERE id=$1",
+    "SELECT quota FROM owners WHERE id=$1",
     [req.user.id],
   );
-  res.json({ forms, storage, user: req.user });
+  const used = forms.reduce((total, row) => total + row.fileBytes, 0);
+  res.json({ forms, storage: { quota: owner?.quota, used }, user: req.user });
 });
 adm.post("/forms", async (req, res) =>
   res
@@ -112,6 +139,22 @@ adm.post("/forms", async (req, res) =>
     ),
 );
 adm.get("/forms/:id", async (req, res) => res.json(await owned(req)));
+adm.delete("/forms/:id", async (req, res) => {
+  await tx(async (db) => {
+    const form = await owned(req, db, true);
+    if (form.version !== 0 && !form.closed)
+      fail(409, "Cerrá el formulario antes de eliminarlo.");
+    if (form.closed && req.body?.closed !== true)
+      fail(409, "El formulario cambió de estado. Confirmá el borrado desde Cerrados.");
+    await discard(db, "form=$1", [form.id]);
+    if (form.closed) {
+      await db.query("DELETE FROM responses WHERE form=$1", [form.id]);
+      await db.query("DELETE FROM versions WHERE form=$1", [form.id]);
+    }
+    await db.query("DELETE FROM forms WHERE id=$1", [form.id]);
+  });
+  res.json({ ok: true });
+});
 adm.put("/forms/:id", async (req, res) => {
   const { draft, revision, publish } = req.body;
   const error = checkDraft(draft, publish);
@@ -173,13 +216,13 @@ adm.post("/forms/:id/media", raw, async (req, res) => {
   await upload(req, res, { form: f.id, owner: f.owner, allowed: ["Imagen"] });
 });
 adm.get("/files/:file", async (req, res) => {
-  const f =
-    uuid(req.params.file) &&
-    (await first(
-      pool,
-      "SELECT x.* FROM files x JOIN forms f ON f.id=x.form WHERE x.id=$1 AND f.owner=$2",
-      [req.params.file, req.user.id],
-    ));
+  const f = uuid(req.params.file)
+    ? await first<FileRow>(
+        pool,
+        "SELECT x.* FROM files x JOIN forms f ON f.id=x.form WHERE x.id=$1 AND f.owner=$2",
+        [req.params.file, req.user.id],
+      )
+    : undefined;
   sendFile(res, f, f?.kind === "media");
 });
 adm.get("/forms/:id/results", async (req, res) => {
@@ -217,15 +260,15 @@ adm.delete("/forms/:id/results/:response", async (req, res) => {
 });
 const pub = express.Router({ mergeParams: true });
 app.use("/api/public/:slug", pub);
-const published = async (req, db = pool, version = null, lock = false) => {
-  const f = await first(
+const published = async (req: Request, db: Database = pool, version: number | string | null = null, lock = false) => {
+  const f = await first<FormRow>(
     db,
     "SELECT * FROM forms WHERE slug=$1" + (lock ? " FOR SHARE" : ""),
     [req.params.slug],
   );
   if (!f) fail(404, "No encontramos este formulario.");
   if (f.closed) fail(410, "Este formulario ya no recibe respuestas.");
-  const v = await first(
+  const v = await first<{ version: number; body: Draft }>(
     db,
     "SELECT * FROM versions WHERE form=$1 AND version=$2",
     [f.id, version || f.version],
@@ -243,7 +286,7 @@ pub.get("/media/:version/:file", async (req, res) => {
     fail(404, "Imagen no disponible.");
   sendFile(
     res,
-    await first(pool, "SELECT * FROM files WHERE form=$1 AND id=$2", [
+    await first<FileRow>(pool, "SELECT * FROM files WHERE form=$1 AND id=$2", [
       f.id,
       req.params.file,
     ]),
@@ -276,7 +319,7 @@ pub.delete("/upload/:token/:file", async (req, res) => {
   );
   res.json({ ok: true });
 });
-pub.post("/responses", async (req, res) => {
+pub.post("/responses", async (req: Request<{ slug: string }>, res) => {
   const { token, version, answers } = req.body;
   if (
     !uuid(token) ||
@@ -288,14 +331,14 @@ pub.post("/responses", async (req, res) => {
     fail(400, "Envío inválido.");
   await tx(async (db) => {
     await db.query("SELECT pg_advisory_xact_lock(hashtext($1))", [token]);
-    const previous = await first(
+    const previous = await first<{ slug: string }>(
       db,
       "SELECT f.slug FROM responses r JOIN forms f ON f.id=r.form WHERE r.id=$1",
       [token],
     );
     if (previous?.slug === req.params.slug) return;
     const { f, v } = await published(req, db, version, true);
-    const clean = {};
+    const clean: Answers = {};
     for (const q of visible(v.body.questions, answers)) {
       const val = answers[q.id];
       if (
@@ -335,7 +378,7 @@ app.use(express.static(path.resolve("dist")));
 app.get("/{*path}", (req, res) =>
   res.sendFile(path.resolve("dist/index.html")),
 );
-app.use((e, req, res, next) => {
+const handleError: ErrorRequestHandler = (e, req, res, next) => {
   if (res.headersSent) return next(e);
   if (!e.status) console.error(e);
   res
@@ -348,7 +391,8 @@ app.use((e, req, res, next) => {
             ? e.message
             : "No pudimos completar la operación.",
     });
-});
+};
+app.use(handleError);
 await migrate();
 await cleanup();
 setInterval(() => cleanup().catch(console.error), 60000).unref();

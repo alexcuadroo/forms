@@ -8,18 +8,39 @@ export const labels = {
   url: "Enlace",
   file: "Archivo",
 };
-export const choice = (type) =>
+export type Kind = keyof typeof labels;
+export type Rule = { source: string; op: string; value: string };
+export type Question = {
+  id: string;
+  title: string;
+  description: string;
+  type: Kind;
+  required: boolean;
+  options: string[];
+  categories: string[];
+  media: string;
+  mode: string;
+  rules: Rule[];
+};
+export type Draft = {
+  title: string;
+  theme: { accent: string; background: string; font: string; image: string };
+  questions: Question[];
+};
+export type Answers = Record<string, string | string[]>;
+
+export const choice = (type: Kind) =>
   ["single", "multi", "select", "bool"].includes(type);
-export const options = (q) =>
+export const options = (q: Question) =>
   q.type === "bool" ? ["Verdadero", "Falso"] : q.options;
 export const categories = ["Imagen", "Video", "PDF", "Documento"];
 export const fonts = ["Inter", "Georgia", "Verdana", "monospace"];
-export const blank = () => ({
+export const blank = (): Draft => ({
   title: "Formulario sin título",
   theme: { accent: "#245E4A", background: "#F6F5EF", font: "Inter", image: "" },
   questions: [],
 });
-export const question = () => ({
+export const question = (): Question => ({
   id: crypto.randomUUID(),
   title: "",
   description: "",
@@ -31,7 +52,7 @@ export const question = () => ({
   mode: "all",
   rules: [],
 });
-export const operators = (type) =>
+export const operators = (type: Kind) =>
   type === "file"
     ? ["respondida"]
     : type === "multi"
@@ -39,10 +60,10 @@ export const operators = (type) =>
       : choice(type)
         ? ["es", "respondida"]
         : ["es", "contiene", "respondida"];
-const filled = (v) =>
+const filled = (v: unknown) =>
   Array.isArray(v) ? v.length > 0 : typeof v === "string" && !!v.trim();
-export function visible(questions, answers) {
-  const shown = new Set();
+export function visible(questions: Question[], answers: Answers) {
+  const shown = new Set<string>();
   return questions.filter((q) => {
     const matches = q.rules.map((r) => {
       const v = answers[r.source];
@@ -57,12 +78,12 @@ export function visible(questions, answers) {
     return ok;
   });
 }
-export const uuid = (v) =>
+export const uuid = (v: unknown): v is string =>
   typeof v === "string" &&
   /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(v);
-export function checkDraft(d, publishing = false) {
-  const str = (v, max) => typeof v === "string" && v.length <= max;
-  const asset = (v) => v === "" || uuid(v);
+export function checkDraft(d: Draft, publishing = false) {
+  const str = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
+  const asset = (v: unknown) => v === "" || uuid(v);
   if (
     !d ||
     !str(d.title, 200) ||
@@ -78,7 +99,7 @@ export function checkDraft(d, publishing = false) {
     return "Revisá el título y el diseño.";
   if (publishing && (!d.title.trim() || !d.questions.length))
     return "Añadí un título y al menos una pregunta.";
-  const prior = new Map();
+  const prior = new Map<string, Question>();
   for (const q of d.questions) {
     if (
       !q ||
@@ -108,7 +129,7 @@ export function checkDraft(d, publishing = false) {
     )
       return "Completá el título y las opciones de cada pregunta.";
     for (const r of q.rules) {
-      const src = prior.get(r.source);
+      const src = r && prior.get(r.source);
       if (!src || !operators(src.type).includes(r.op) || !str(r.value, 2000))
         return "La condición debe referirse a una pregunta anterior compatible.";
       if (
@@ -122,7 +143,7 @@ export function checkDraft(d, publishing = false) {
     prior.set(q.id, q);
   }
 }
-export function answerError(q, v) {
+export function answerError(q: Question, v: unknown) {
   if (!filled(v))
     return q.required ? "Respondé esta pregunta para continuar." : undefined;
   if (q.type === "multi")
@@ -143,7 +164,7 @@ export function answerError(q, v) {
   }
   if (q.type === "file" && !uuid(v)) return "Archivo inválido.";
 }
-export const mediaIds = (d) => [
+export const mediaIds = (d: Draft) => [
   ...new Set(
     [d.theme.image, ...d.questions.map((q) => q.media)].filter(Boolean),
   ),

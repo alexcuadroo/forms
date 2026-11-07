@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   PanelsTopLeft,
@@ -12,12 +12,16 @@ import {
   LockKeyhole,
   FolderOpen,
   Database,
-  ChevronRight,
+  LockKeyholeOpen,
+  Trash2,
 } from "lucide-react";
 import { api, msg, type Form, type Draft } from "./model";
+import { DecisionProvider, useDecision } from "./DecisionDialog";
 import { Editor } from "./Editor";
 import { Results } from "./Results";
 import { Runner } from "./Runner";
+import { Toaster, toast } from "sonner";
+import { useResource } from "./useResource";
 import "./style.css";
 type Row = {
   id: string;
@@ -27,6 +31,7 @@ type Row = {
   version: number;
   questions: number;
   responses: number;
+  fileBytes: number;
   updated: string;
 };
 type Dashboard = {
@@ -35,43 +40,30 @@ type Dashboard = {
   user: { name: string; plan: string };
 };
 function Public({ slug }: { slug: string }) {
-  const [v, set] = useState<{ body: Draft; version: number }>(),
-    [error, err] = useState("");
-  useEffect(() => {
-    api("/public/" + slug)
-      .then(set)
-      .catch((e) => err(msg(e)));
-  }, [slug]);
+  const { data: v, failed, reload } = useResource<{ body: Draft; version: number }>("/public/" + slug);
   return v ? (
     <Runner draft={v.body} slug={slug} version={v.version} />
   ) : (
     <main className="shell">
-      <h2>{error || "Cargando formulario…"}</h2>
+      {failed ? <button onClick={reload}>Volver a cargar el formulario</button> : <p>Cargando formulario…</p>}
     </main>
   );
 }
 function Panel() {
-  const [data, set] = useState<Dashboard>(),
-    [form, edit] = useState<Form>(),
+  const ask = useDecision();
+  const { data, failed, reload } = useResource<Dashboard>("/admin/forms");
+  const [hiddenFormIds, setHiddenFormIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [form, edit] = useState<Form>(),
     [result, results] = useState<Row>(),
     [search, find] = useState(""),
     [filter, filterBy] = useState("Todos"),
-    [note, say] = useState(""),
     [busy, wait] = useState(false);
-  const load = () =>
-    api<Dashboard>("/admin/forms")
-      .then(set)
-      .catch((e) => say(msg(e)));
-  useEffect(() => {
-    void load();
-  }, []);
   async function run(fn: () => Promise<unknown>) {
     wait(true);
-    say("");
     try {
       await fn();
     } catch (e) {
-      say(msg(e));
+      toast.error(msg(e));
     } finally {
       wait(false);
     }
@@ -79,14 +71,34 @@ function Panel() {
   const back = () => {
     edit(undefined);
     results(undefined);
-    void load();
+    reload();
   };
+  async function deleteForm(row: Row) {
+    setHiddenFormIds(ids => new Set(ids).add(row.id));
+    try {
+      await api("/admin/forms/" + row.id, "DELETE", { closed: row.closed });
+      toast.success(`Formulario «${row.title || "Formulario sin título"}» eliminado.`);
+    } catch (error) {
+      setHiddenFormIds(ids => {
+        const remaining = new Set(ids);
+        remaining.delete(row.id);
+        return remaining;
+      });
+      toast.error(`No se pudo eliminar «${row.title || "Formulario sin título"}».`, {
+        description: msg(error),
+      });
+    }
+  }
   if (form) return <Editor form={form} back={back} />;
   if (result)
     return <Results id={result.id} title={result.title} back={back} />;
-  const rows = data?.forms || [],
+  const rows = data?.forms.filter(row => !hiddenFormIds.has(row.id)) || [],
     status = (r: Row) =>
       !r.version ? "Borrador" : r.closed ? "Cerrado" : "Publicado";
+  const hiddenBytes = data?.forms.reduce(
+    (total, row) => total + (hiddenFormIds.has(row.id) ? row.fileBytes ?? 0 : 0), 0,
+  ) ?? 0;
+  const usedBytes = Math.max(0, Number(data?.storage.used ?? 0) - hiddenBytes);
   const found = rows.filter(
     (r) =>
       r.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()) &&
@@ -108,10 +120,10 @@ function Panel() {
           </div>
         )}
       </header>
-      <main className="shell">
+      <main className="shell dashboard">
         <div className="bar heading">
           <div>
-            <small>ESPACIO DOCENTE</small>
+            <small>Espacio docente</small>
             <h1>Mis formularios</h1>
           </div>
           <button
@@ -126,7 +138,7 @@ function Panel() {
           </button>
         </div>
         <div className="stats">
-          {[
+          {([
             [FileText, "Formularios", rows.length],
             [
               Globe,
@@ -138,7 +150,7 @@ function Panel() {
               "Respuestas",
               rows.reduce((n, r) => n + r.responses, 0),
             ],
-          ].map(([Icon, title, value]: any) => (
+          ] as const).map(([Icon, title, value]) => (
             <div key={title}>
               <Icon />
               <span>{title}</span>
@@ -158,10 +170,11 @@ function Panel() {
             />
           </label>
         </div>
-        <nav>
+        <nav aria-label="Filtrar formularios">
           {["Todos", "Publicado", "Borrador", "Cerrado"].map((s, i) => (
             <button
               key={s}
+              aria-pressed={s === filter}
               className={s === filter ? "active" : ""}
               onClick={() => filterBy(s)}
             >
@@ -169,12 +182,8 @@ function Panel() {
             </button>
           ))}
         </nav>
-        {note && (
-          <p className="notice" role="status">
-            {note}
-          </p>
-        )}
-        {!data && !note && <p>Cargando formularios…</p>}
+        {failed && <button onClick={reload}>Volver a cargar la biblioteca</button>}
+        {!data && !failed && <p>Cargando formularios…</p>}
         {data && !found.length && (
           <div className="empty">
             <FolderOpen size={38} />
@@ -188,17 +197,15 @@ function Panel() {
             </p>
           </div>
         )}
-        <div className="grid">
+        <div className="form-list">
           {found.map((r) => (
-            <article className="card formcard" key={r.id}>
-              <div className="bar">
-                <FileText />
-                <small>{status(r)}</small>
+            <article className="form-row" key={r.id}>
+              <span className="form-icon"><FileText /></span>
+              <div className="form-info">
+                <h3>{r.title || "Formulario sin título"}</h3>
+                <span>{r.questions} {r.questions === 1 ? "pregunta" : "preguntas"} · {r.responses} {r.responses === 1 ? "respuesta" : "respuestas"}</span>
               </div>
-              <h2>{r.title}</h2>
-              <p>
-                {r.questions} preguntas · {r.responses} respuestas
-              </p>
+              <span className={"form-status " + status(r)}>{status(r)}</span>
               <div className="actions">
                 <button
                   disabled={busy}
@@ -211,40 +218,53 @@ function Panel() {
                   <PenLine />
                   Editar
                 </button>
-                <button onClick={() => results(r)}>
+                {r.version > 0 && <button disabled={busy} onClick={() => results(r)}>
                   <ChartNoAxesColumn />
                   Resultados
-                </button>
+                </button>}
               </div>
               {r.slug && (
                 <div className="actions">
-                  <button
+                  <button disabled={busy}
                     onClick={() =>
                       void run(async () => {
                         await navigator.clipboard.writeText(
                           location.origin + "/" + r.slug,
                         );
-                        say("Enlace copiado.");
+                        toast.success("Enlace copiado.");
                       })
                     }
                   >
                     <Link />
-                    Enlace
+                    Copiar enlace
                   </button>
-                  <button
+                  <button disabled={busy}
                     onClick={() =>
                       void run(async () => {
                         await api("/admin/forms/" + r.id + "/state", "POST", {
                           closed: !r.closed,
                         });
-                        await load();
+                        toast.success(r.closed ? "Formulario reabierto." : "Formulario cerrado.");
+                        reload();
                       })
                     }
                   >
-                    <LockKeyhole />
+                    {r.closed ? <LockKeyholeOpen /> : <LockKeyhole />}
                     {r.closed ? "Reabrir" : "Cerrar"}
                   </button>
                 </div>
+              )}
+              {(!r.version || r.closed) && (
+                <button className="danger" disabled={busy} onClick={() => ask({
+                  title: r.closed ? "¿Eliminar formulario cerrado?" : "¿Eliminar borrador?",
+                  description: r.closed
+                    ? `Se eliminarán permanentemente «${r.title || "Formulario sin título"}», sus versiones, sus archivos y todas sus respuestas (${r.responses}).`
+                    : `Se eliminarán «${r.title || "Formulario sin título"}» y sus archivos de forma permanente.`,
+                  acceptLabel: r.closed ? "Eliminar formulario" : "Eliminar borrador",
+                  onAccept: () => void deleteForm(r),
+                })}>
+                  <Trash2 /> {r.closed ? "Eliminar formulario" : "Eliminar borrador"}
+                </button>
               )}
             </article>
           ))}
@@ -254,11 +274,11 @@ function Panel() {
             <Database />
             <strong>Almacenamiento</strong>
             <progress
-              value={Number(data.storage.used)}
+              value={usedBytes}
               max={Number(data.storage.quota)}
             />
             <span>
-              {(data.storage.used / 1e6).toLocaleString("es-UY", {
+              {(usedBytes / 1e6).toLocaleString("es-UY", {
                 maximumFractionDigits: 1,
               })}{" "}
               MB de {data.storage.quota / 1e6} MB
@@ -271,5 +291,8 @@ function Panel() {
 }
 const pathname = location.pathname.replace(/^\/|\/$/g, "");
 createRoot(document.getElementById("root")!).render(
-  pathname ? <Public slug={encodeURIComponent(pathname)} /> : <Panel />,
+  <DecisionProvider>
+    {pathname ? <Public slug={encodeURIComponent(pathname)} /> : <Panel />}
+    <Toaster position="bottom-right" richColors />
+  </DecisionProvider>,
 );

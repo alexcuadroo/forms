@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useDecision } from "./DecisionDialog";
+import { useResource } from "./useResource";
 import { ArrowLeft, Download, Trash2 } from "lucide-react";
 import { api, msg, type Draft, type Answers } from "./model";
-import { choice, options } from "../shared/forms.js";
+import { choice, options } from "../shared/forms.ts";
 type Data = {
   rows: { id: string; created: string; version: number; answers: Answers }[];
   versions: { version: number; body: Draft }[];
@@ -16,16 +19,10 @@ export function Results({
   title: string;
   back: () => void;
 }) {
-  const [data, set] = useState<Data>(),
-    [error, err] = useState("");
+  const ask = useDecision();
   const base = "/admin/forms/" + id + "/results";
-  const load = () =>
-    api<Data>(base)
-      .then(set)
-      .catch((e) => err(msg(e)));
-  useEffect(() => {
-    void load();
-  }, [id]);
+  const { data, failed, reload } = useResource<Data>(base);
+  const [deleting, setDeleting] = useState(false);
   const filename = (id: string) =>
     data?.files.find((f) => f.id === id)?.name || id;
   function csv() {
@@ -72,7 +69,7 @@ export function Results({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return (
-    <main className="shell">
+    <main className="shell results">
       <button onClick={back}>
         <ArrowLeft />
         Panel
@@ -85,7 +82,8 @@ export function Results({
           Exportar CSV
         </button>
       </div>
-      {error && <p role="alert">{error}</p>}
+      {failed && <button onClick={reload}>Volver a cargar los resultados</button>}
+      {!data && !failed && <p>Cargando resultados…</p>}
       {data && (
         <>
           {data.versions.map((v) => (
@@ -115,6 +113,7 @@ export function Results({
             </details>
           ))}
           <h2>Envíos ({data.rows.length})</h2>
+          {!data.rows.length && <div className="empty">Todavía no hay envíos.</div>}
           {data.rows.map((r) => (
             <details className="card" key={r.id}>
               <summary>
@@ -138,15 +137,24 @@ export function Results({
                   </p>
                 ))}
               <button
-                onClick={async () => {
-                  if (confirm("¿Eliminar el envío y sus archivos?"))
+                disabled={deleting}
+                onClick={() => ask({
+                  title: "¿Eliminar envío?",
+                  description: `Se eliminarán la respuesta del ${new Date(r.created).toLocaleString("es-UY")} y sus archivos de forma permanente.`,
+                  acceptLabel: "Eliminar envío",
+                  onAccept: async () => {
                     try {
+                      setDeleting(true);
                       await api(base + "/" + r.id, "DELETE");
-                      await load();
+                      toast.success("Envío eliminado.");
+                      reload();
                     } catch (e) {
-                      err(msg(e));
+                      toast.error(msg(e));
+                    } finally {
+                      setDeleting(false);
                     }
-                }}
+                  },
+                })}
               >
                 <Trash2 />
                 Eliminar envío

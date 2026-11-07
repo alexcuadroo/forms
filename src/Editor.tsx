@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -24,7 +25,7 @@ import {
   categories,
   fonts,
   checkDraft,
-} from "../shared/forms.js";
+} from "../shared/forms.ts";
 import {
   api,
   upload,
@@ -35,25 +36,25 @@ import {
   type Kind,
   type Rule,
 } from "./model";
+import { useDecision } from "./DecisionDialog";
 import { Runner } from "./Runner";
 export function Editor({ form, back }: { form: Form; back: () => void }) {
+  const ask = useDecision();
   const [saved, save] = useState(form),
     [d, set] = useState<Draft>(form.draft),
     [at, select] = useState(0),
     [tab, view] = useState("Preguntas"),
     [mobile, device] = useState(false),
-    [note, say] = useState(""),
     [busy, wait] = useState(false);
   const q = d.questions[at],
     prior = d.questions.slice(0, at);
   const patch = (p: Partial<Draft>) => {
     set({ ...d, ...p });
-    say("");
   };
   function replace(list: Q[], i = at) {
     const error = checkDraft({ ...d, questions: list });
     if (error) {
-      say(error);
+      toast.warning(error);
       return;
     }
     patch({ questions: list });
@@ -73,7 +74,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
   async function persist(publish: boolean) {
     const error = checkDraft(d, publish);
     if (error) {
-      say(error);
+      toast.warning(error);
       return;
     }
     wait(true);
@@ -84,13 +85,13 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
         publish,
       });
       save(f);
-      say(
+      toast.success(
         publish
           ? "Publicado en " + location.origin + "/" + f.slug
           : "Borrador guardado.",
       );
     } catch (e) {
-      say(msg(e));
+      toast.error(msg(e));
     } finally {
       wait(false);
     }
@@ -103,7 +104,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
       if (background) patch({ theme: { ...d.theme, image: id } });
       else edit({ media: id });
     } catch (e) {
-      say(msg(e));
+      toast.error(msg(e));
     } finally {
       wait(false);
     }
@@ -144,11 +145,13 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
       <div className="bar">
         <button
           onClick={() => {
-            if (
-              JSON.stringify(d) === JSON.stringify(saved.draft) ||
-              confirm("¿Salir y descartar los cambios sin guardar?")
-            )
-              back();
+            if (JSON.stringify(d) === JSON.stringify(saved.draft)) return back();
+            ask({
+              title: "¿Salir del editor?",
+              description: "Si volvés al panel, se perderán los cambios sin guardar.",
+              acceptLabel: "Descartar y salir",
+              onAccept: back,
+            });
           }}
         >
           <ArrowLeft />
@@ -171,14 +174,15 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
         value={d.title}
         onChange={(e) => patch({ title: e.target.value })}
       />
-      <nav>
-        {[
+      <nav aria-label="Secciones del editor">
+        {([
           [List, "Preguntas"],
           [Palette, "Diseño"],
           [Eye, "Vista previa"],
-        ].map(([Icon, name]: any) => (
+        ] as const).map(([Icon, name]) => (
           <button
             className={tab === name ? "active" : ""}
+            aria-pressed={tab === name}
             key={name}
             onClick={() => view(name)}
           >
@@ -187,11 +191,6 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
           </button>
         ))}
       </nav>
-      {note && (
-        <p role="status" className="notice">
-          {note}
-        </p>
-      )}
       {tab === "Vista previa" ? (
         <>
           <div className="actions">
@@ -239,19 +238,21 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
       ) : (
         <div className="editGrid">
           <aside className="card">
-            <h3>Preguntas</h3>
+            <h3>Preguntas <span>{d.questions.length}</span></h3>
             {d.questions.map((p, i) => (
               <button
                 className={at === i ? "active" : ""}
+                aria-current={at === i ? "step" : undefined}
                 key={p.id}
                 onClick={() => select(i)}
               >
-                {i + 1}. {p.title || labels[p.type]}
+                <span className="question-number">{i + 1}</span>
+                <span>{p.title || labels[p.type]}</span>
               </button>
             ))}
             <button
               onClick={() =>
-                replace([...d.questions, question() as Q], d.questions.length)
+                replace([...d.questions, question()], d.questions.length)
               }
             >
               <Plus />
@@ -259,11 +260,11 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
             </button>
           </aside>
           {q ? (
-            <article className="card fields">
+            <article key={q.id} className="card fields">
               <div className="bar">
                 <h2>Pregunta {at + 1}</h2>
                 <div className="actions">
-                  {[
+                  {([
                     [ArrowUp, "Subir", () => move(-1), at === 0],
                     [
                       ArrowDown,
@@ -290,7 +291,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
                       () => replace(d.questions.filter((p) => p.id !== q.id)),
                       false,
                     ],
-                  ].map(([Icon, title, fn, disabled]: any) => (
+                  ] as const).map(([Icon, title, fn, disabled]) => (
                     <button
                       key={title}
                       aria-label={title}
@@ -475,7 +476,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
           ) : (
             <article className="card">
               <h2>Primera pregunta</h2>
-              <button onClick={() => replace([question() as Q])}>
+              <button onClick={() => replace([question()])}>
                 <Plus />
                 Añadir pregunta
               </button>

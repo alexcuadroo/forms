@@ -10,7 +10,7 @@ Los volúmenes `postgres` y `uploads` deben conservarse entre despliegues. Para 
 
 ## Desarrollo
 
-Usá Node 26.13.0 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`, `pnpm build` y `pnpm start`. Para desarrollo con recarga, ejecutá también `pnpm dev` y usá el puerto de Vite. `pnpm test` corre las pruebas de lógica.
+Usá Node 26.13.0 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`. Para desarrollo, iniciá `pnpm dev:api` y `pnpm dev` en dos terminales y abrí el puerto de Vite. Ambos procesos recargan los cambios. Para servir la compilación de producción, ejecutá `pnpm build` y `pnpm start`. `pnpm test` corre las pruebas de lógica.
 
 | Variable | Uso |
 | --- | --- |

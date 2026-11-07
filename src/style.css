@@ -3,7 +3,7 @@
 }
 body {
   margin: 0;
-  background: #f6f6f0;
+  background: #f8f8f5;
   color: #202e29;
   font:
     15px Inter,
@@ -104,9 +104,9 @@ nav {
   color: #34553e;
 }
 .shell {
-  max-width: 1210px;
+  max-width: 1350px;
   margin: auto;
-  padding: 44px 5vw 70px;
+  padding: 36px clamp(20px, 4vw, 60px) 70px;
 }
 .heading {
   margin: 4px 0 26px;
@@ -127,8 +127,7 @@ small {
   font-weight: 650;
   letter-spacing: 0.035em;
 }
-.stats,
-.grid {
+.stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
@@ -199,9 +198,6 @@ nav .active {
   padding: 20px;
   min-width: 0;
   overflow-wrap: anywhere;
-}
-.formcard .actions {
-  margin-top: 8px;
 }
 .actions {
   flex-wrap: wrap;
@@ -303,13 +299,6 @@ input.editorTitle,
   max-height: 200px;
   object-fit: contain;
 }
-.notice,
-[role="alert"] {
-  background: #fff0c9;
-  padding: 10px;
-  border-radius: 7px;
-  color: #4b3612;
-}
 summary {
   cursor: pointer;
   font-weight: 600;
@@ -401,8 +390,146 @@ summary {
 .runner header {
   overflow-wrap: anywhere;
 }
+/* Administration */
+.heading {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(26px, 4vw, 56px);
+  border-radius: 22px;
+  background: #214c40;
+  color: #fcfbf1;
+  margin: 0 0 16px;
+}
+.heading::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 53%;
+  inset: 0 0 0 auto;
+  background: repeating-radial-gradient(ellipse at 95% 185%, transparent 0 22px, #a3c6a933 23px 24px);
+}
+.heading small {
+  color: #d8e7cc;
+  font-size: 13px;
+}
+.heading h1 { margin-bottom: 0; }
+.heading .primary {
+  background: #e4f0cf;
+  color: #1d422f;
+  padding: 12px 18px;
+}
+.stats > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #edf1e9;
+  padding: 17px 22px;
+}
+.stats > div:nth-child(2) { background: #f4eddf; }
+.stats > div:nth-child(3) { background: #ebedf4; }
+.stats svg { width: 20px; flex-shrink: 0; }
+.stats strong { margin-left: auto; font-size: 30px; }
+.library { margin: 36px 0 14px; }
+.library h2 { margin: 0; font-size: 27px; }
+.dashboard nav, .editor nav {
+  gap: 2px;
+  border-bottom: 1px solid #d5dbd3;
+  margin: 0 0 18px;
+}
+.dashboard nav button, .editor nav button {
+  border-radius: 0;
+  margin-bottom: -1px;
+  padding: 11px 14px;
+  border-bottom: 2px solid transparent;
+}
+.dashboard nav .active, .editor nav .active {
+  background: transparent;
+  border-bottom-color: #245e4a;
+  color: #245e4a;
+}
+.form-list {
+  border-radius: 14px;
+  background: white;
+}
+.form-list:not(:empty) { border: 1px solid #d5dbd3; }
+.form-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px;
+}
+.form-row + .form-row { border-top: 1px solid #e1e4dc; }
+.form-icon, .question-number {
+  display: inline-grid;
+  place-items: center;
+  background: #e4ece1;
+  color: #305840;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.form-icon { width: 44px; height: 48px; }
+.form-info { flex: 1 1 160px; min-width: 0; }
+.form-info h3 { margin: 0 0 4px; overflow-wrap: anywhere; font-size: 18px; }
+.form-info > span, .storage { color: #54645a; font-size: 13px; }
+.form-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
+  padding: 5px 10px;
+  background: #f2edde;
+  color: #705423;
+  font-size: 12px;
+  font-weight: 650;
+}
+.form-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.form-status.Publicado { background: #e4f2e7; color: #28623f; }
+.form-status.Cerrado { background: #eaecee; color: #515961; }
+.form-row .actions { gap: 6px; }
+.form-row button { padding: 8px 10px; font-size: 14px; }
+.form-row .danger { color: #963927; }
+.storage { border-top: 1px solid #dce1d8; padding-top: 18px; }
+.editor { width: 100%; }
+.editorTitle { margin: 18px 0 12px; }
+.editorTitle:hover { background: #eeefe9; }
+.editor aside {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 12px;
+}
+.editor aside h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 8px 14px;
+}
+.editor aside h3 span { color: #57665a; font-size: 13px; }
+.editor aside button { text-align: left; overflow-wrap: anywhere; }
+.editor aside button:not(:last-child) { border: 0; background: transparent; }
+.editor aside button.active, .editor aside button:hover { background: #e7eee5; }
+.question-number { min-width: 26px; height: 26px; font-size: 12px; }
+.active .question-number { background: #2b5946; color: white; }
+.editor aside button:last-child { margin-top: 10px; justify-content: center; }
+.editor .fields { gap: 18px; padding: clamp(18px, 3vw, 34px); background: white; }
+.fields > .bar { border-bottom: 1px solid #e1e4dc; padding-bottom: 16px; }
+.fields input, .fields textarea, .fields select { min-width: 0; max-width: 100%; }
+.fields .thumb { display: block; margin: 0 auto 12px; }
+.fields details { border-top: 1px solid #d5dbd3; padding-top: 10px; }
+.fields details > button { margin-top: 12px; }
+.fields .check input { accent-color: #245e4a; width: 17px; height: 17px; }
+.results h1 { margin: 28px 0; overflow-wrap: anywhere; }
+.results details { margin-bottom: 10px; }
 @media (max-width: 760px) {
-  .grid,
   .editGrid {
     grid-template-columns: 1fr;
   }
@@ -419,9 +546,16 @@ summary {
     gap: 6px;
   }
   .stats strong {
+    margin-left: 0;
     align-self: start;
     font-size: 29px;
   }
+  .editor aside { position: static; max-height: 34vh; }
+  .form-row { gap: 10px; padding: 14px; }
+  .form-row .actions { flex-wrap: wrap; }
+  .heading { gap: 18px; }
+  .dashboard nav button { padding: 10px 8px; }
+  .stats > div { align-items: flex-start; }
   .stats span {
     font-size: 12px;
   }
@@ -447,3 +581,20 @@ summary {
     padding: 16px;
   }
 }
+
+.decision-dialog {
+  width: min(430px, calc(100% - 32px));
+  border: 1px solid #d5dbd3;
+  border-radius: 18px;
+  padding: 28px;
+  background: #fffefa;
+  color: #202e29;
+  box-shadow: 0 20px 70px #13281f26;
+  overflow-wrap: anywhere;
+}
+.decision-dialog::backdrop { background: #182c2394; }
+.decision-dialog h2 { margin: 0; }
+.decision-dialog p { margin: 12px 0 24px; line-height: 1.55; }
+.decision-dialog .actions { justify-content: flex-end; }
+.decision-dialog .destructive { background: #923e31; color: white; border-color: transparent; }
+.decision-dialog .destructive:hover { background: #793326; }

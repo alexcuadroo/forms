@@ -1,19 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  type Question,
   blank,
   question,
   checkDraft,
   visible,
   answerError,
-} from "../shared/forms.js";
-const first = { ...question(), title: "¿Participás?", type: "bool" };
+} from "../shared/forms.ts";
+const first: Question = { ...question(), title: "¿Participás?", type: "bool" };
 const second = {
   ...question(),
   title: "Detalles",
   rules: [{ source: first.id, op: "es", value: "Verdadero" }],
 };
-const third = {
+const third: Question = {
   ...question(),
   title: "Adjunto",
   type: "file",

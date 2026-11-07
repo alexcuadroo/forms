@@ -1,6 +1,7 @@
+import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { ArrowRight, ArrowLeft, Check, Upload } from "lucide-react";
-import { options, visible, answerError } from "../shared/forms.js";
+import { options, visible, answerError } from "../shared/forms.ts";
 import { api, upload, msg, type Draft, type Answers, type Q } from "./model";
 function contrast(hex: string) {
   const channels = [1, 3, 5]
@@ -24,7 +25,6 @@ export function Runner({
 }) {
   const [answers, setAnswers] = useState<Answers>({}),
     [index, go] = useState(0),
-    [error, err] = useState(""),
     [busy, wait] = useState(false),
     [done, finish] = useState(false),
     [names, setNames] = useState<Record<string, string>>({});
@@ -58,13 +58,13 @@ export function Runner({
     if (q.type === "file" && answers[q.id] && answers[q.id] !== value)
       remove(String(answers[q.id]));
     setAnswers(next);
-    err("");
+    toast.dismiss(q.id);
   }
   async function advance() {
     if (lock.current || !q) return;
     const issue = answerError(q, answers[q.id]);
     if (issue) {
-      err(issue);
+      toast.warning(issue, { id: q.id });
       return;
     }
     if (index < list.length - 1) {
@@ -80,9 +80,10 @@ export function Runner({
           version,
           answers,
         });
+      toast.success(slug ? "Respuesta enviada." : "Vista previa completada.");
       finish(true);
     } catch (e) {
-      err(msg(e));
+      toast.error(msg(e));
     } finally {
       lock.current = false;
       wait(false);
@@ -115,9 +116,9 @@ export function Runner({
         <section>
           <Check />
           <h1 tabIndex={-1} ref={focus}>
-            {slug ? "Respuesta enviada" : "Vista previa completada"}
+            {slug ? "Gracias por participar." : "Fin de la vista previa"}
           </h1>
-          <p>{slug ? "Gracias por participar." : "Podés volver al editor."}</p>
+          {!slug && <p>Podés volver al editor.</p>}
         </section>
       ) : q ? (
         <section>
@@ -208,7 +209,7 @@ export function Runner({
                       );
                       setNames({ ...names, [q.id]: f.name });
                     } catch (ex) {
-                      err(msg(ex));
+                      toast.error(msg(ex));
                     } finally {
                       wait(false);
                       lock.current = false;
@@ -249,7 +250,6 @@ export function Runner({
                 })}
               </div>
             )}
-            {error && <p role="alert">{error}</p>}
             <div className="actions">
               <button type="submit" className="primary" disabled={busy}>
                 {busy
@@ -265,7 +265,7 @@ export function Runner({
                   disabled={busy}
                   onClick={() => {
                     go(index - 1);
-                    err("");
+                    toast.dismiss(q.id);
                   }}
                 >
                   <ArrowLeft size={16} />

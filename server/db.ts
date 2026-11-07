@@ -1,6 +1,8 @@
 import pg from "pg";
+import type { Pool, PoolClient, QueryResultRow } from "pg";
+export type Database = Pool | PoolClient;
 export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-export async function tx(fn) {
+export async function tx<T>(fn: (db: PoolClient) => Promise<T>) {
   const db = await pool.connect();
   try {
     await db.query("BEGIN");
@@ -14,9 +16,14 @@ export async function tx(fn) {
     db.release();
   }
 }
-export const first = async (db, sql, args = []) =>
-  (await db.query(sql, args)).rows[0];
-export function fail(status, message) {
+export async function first<T extends QueryResultRow = QueryResultRow>(
+  db: Database,
+  sql: string,
+  args: unknown[] = [],
+): Promise<T | undefined> {
+  return (await db.query<T>(sql, args)).rows[0];
+}
+export function fail(status: number, message: string): never {
   throw Object.assign(new Error(message), { status });
 }
 export async function migrate() {
