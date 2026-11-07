@@ -2,7 +2,7 @@
 
 ## Dokploy
 
-Creá una aplicación Docker Compose desde este directorio y seleccioná `compose.yaml`. Configurá `POSTGRES_PASSWORD` con una contraseña aleatoria y desplegá. En Domains, asociá `forms.edualex.uy` al servicio `app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El chequeo `GET /api/health` verifica la conexión a PostgreSQL.
+Creá una aplicación Docker Compose desde este directorio y seleccioná `docker-compose.yml`. Configurá `POSTGRES_PASSWORD` con una contraseña aleatoria y desplegá. En Domains, asociá `forms.edualex.uy` al servicio `form_app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El chequeo `GET /api/health` verifica la conexión a PostgreSQL.
 
 En el panel central de auth registrá la aplicación con slug `form`, URL `https://forms.edualex.uy` y rol permitido `docente`. El backend revalida la sesión y el plan en cada petición privada. El rol admin central también tiene acceso. Los visitantes entran desde el enlace de cuatro caracteres.
 
@@ -21,4 +21,3 @@ Usá Node 26.13.0 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`, `pn
 | UPLOAD_DIR | Directorio persistente de archivos, por defecto uploads. |
 
 Cada publicación crea una versión. Los envíos iniciados antes de una edición pueden completar su versión mientras el formulario siga abierto. Se aceptan imágenes JPEG, PNG, GIF, WebP y AVIF, video MP4, WebM y MOV, PDF, Office Open XML, OpenDocument y texto UTF-8. Las cuotas y el límite de 10 MB se calculan en bytes decimales. Las cargas sin asociar vencen a las 24 horas. La cuota de un creador se actualiza cuando auth central devuelve su plan al acceder al panel.
-
