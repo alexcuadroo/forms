@@ -111,7 +111,7 @@ function Panel() {
           <span className="mark">
             <PanelsTopLeft />
           </span>
-          EduAlex <em>Forms</em>
+          <span>Edu<em>Forms</em></span>
         </div>
         {data && (
           <div className="profile">

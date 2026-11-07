@@ -283,7 +283,7 @@ export function Runner({
         <section>Añadí una pregunta para ver el recorrido.</section>
       )}
       <footer>
-        EduAlex Forms
+        EduForms
         <progress max={list.length || 1} value={done ? list.length : index} />
       </footer>
     </main>
