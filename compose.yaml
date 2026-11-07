@@ -1,0 +1,36 @@
+services:
+  form_app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      PGHOST: db
+      PGUSER: forms
+      PGDATABASE: forms
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-https://forms.edualex.uy}
+      AUTH_URL: ${AUTH_URL:-https://auth.edualex.uy}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      form_db:
+        condition: service_healthy
+  form_db:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: forms
+      POSTGRES_USER: forms
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configura POSTGRES_PASSWORD}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forms -d forms"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+volumes:
+  postgres:
+  uploads:
