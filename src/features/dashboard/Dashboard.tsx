@@ -39,7 +39,6 @@ export function DashboardPage() {
       <main className="shell dashboard">
         <div className="bar heading">
           <div>
-            <small>Espacio docente</small>
             <h1>Mis formularios</h1>
           </div>
           <button
