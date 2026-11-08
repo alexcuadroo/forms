@@ -13,6 +13,8 @@ En el panel central de auth registrá la aplicación con slug `forms`, URL `http
 
 Los volúmenes `postgres` y `uploads` deben conservarse entre despliegues. Para comprobar persistencia, publicá un formulario con archivo, enviá una respuesta, reiniciá ambos servicios y abrí el adjunto desde Resultados. Respaldá ambos volúmenes de forma coordinada.
 
+El Compose limita `form_app` a 0,5 CPU (medio núcleo, equivalente al 12,5 % de un VPS de cuatro núcleos) y 256 MB de RAM, sin swap. Al alcanzar el límite de CPU, Docker restringe el tiempo de ejecución; si se agota la memoria, el proceso puede finalizar y la política de reinicio vuelve a levantarlo. Estos límites se aplican al redesplegar y corresponden únicamente al backend; PostgreSQL tiene su propio contenedor. Podés comprobar el consumo y el límite de memoria con `docker stats`.
+
 ## Desarrollo
 
 Usá Node 26.13.0 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`. Para desarrollo, iniciá `pnpm dev:api` y `pnpm dev` en dos terminales y abrí el puerto de Vite. Ambos procesos recargan los cambios. Para servir la compilación de producción, ejecutá `pnpm build` y `pnpm start`. `pnpm test` corre las pruebas de lógica.

@@ -2,6 +2,9 @@ services:
   form_app:
     build: .
     restart: unless-stopped
+    cpus: 0.5
+    mem_limit: 256m
+    memswap_limit: 256m
     expose:
       - "3000"
     environment:
