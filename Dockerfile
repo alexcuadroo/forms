@@ -15,6 +15,7 @@ RUN --mount=type=cache,id=forms-pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir=/pnpm/store
 COPY tsconfig.json vite.config.ts index.html ./
 COPY src ./src
+COPY public ./public
 COPY server ./server
 COPY shared ./shared
 COPY tests ./tests
