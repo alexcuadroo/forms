@@ -1,5 +1,8 @@
 # EduForms
 
+La estructura y las responsabilidades de cada módulo se describen en
+[Arquitectura](docs/architecture.md).
+
 ## Dokploy
 
 Creá una aplicación Docker Compose desde el repositorio y seleccioná `docker-compose.yml`. Configurá dos contraseñas aleatorias y distintas en Dokploy. `POSTGRES_PASSWORD` corresponde al administrador de PostgreSQL y `FORMS_DB_PASSWORD` al usuario del backend. En Domains, asociá `forms.edualex.uy` al servicio `form_app`, puerto interno 3000, con HTTPS. Apuntá el DNS al servidor. El healthcheck de la imagen consulta `GET /api/health` y verifica la conexión a PostgreSQL.
