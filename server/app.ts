@@ -69,7 +69,7 @@ adm.use(async (req, res, next) => {
     const r = await fetch(auth + "/api/access/check?app=forms", {
       headers: { cookie: req.headers.cookie || "" },
       redirect: "manual",
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(10000),
     });
     if (!r.ok) throw Error();
     data = await r.json();
