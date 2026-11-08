@@ -1,0 +1,10 @@
+import { limit } from "../storage/files.ts";
+import express from "express";
+import * as controllers from "../controllers/public.ts";
+export const router = express.Router({ mergeParams: true });
+const raw = express.raw({ type: "application/octet-stream", limit });
+router.get("/", controllers.getPublishedForm);
+router.get("/media/:version/:file", controllers.getPublicMedia);
+router.post("/upload/:version/:question/:token", raw, controllers.uploadAnswer);
+router.delete("/upload/:token/:file", controllers.deleteUpload);
+router.post("/responses", controllers.submitResponse);

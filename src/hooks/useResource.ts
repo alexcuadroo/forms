@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { api, ApiError, msg } from "./model";
-
+import { api, ApiError } from "../api/client";
+import { msg } from "../utils/errors";
 export function useResource<T>(path: string, silentStatus?: number) {
   const [data, setData] = useState<T>();
   const [failed, setFailed] = useState(false);

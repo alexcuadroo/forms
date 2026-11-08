@@ -1,0 +1,104 @@
+.runner {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-size: cover;
+  background-position: center;
+  padding: clamp(18px, 5vw, 65px);
+  color: var(--ink, #202e29);
+}
+.runner.runner-closed {
+  justify-content: center;
+  text-align: center;
+}
+.runner-protected {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.runner-protected input,
+.runner-protected textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.runner header,
+.runner footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.runner header {
+  font-weight: 650;
+}
+.runner section {
+  width: min(100%, 680px);
+  margin: 40px auto;
+}
+.runner h1 {
+  font: inherit;
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  margin: 12px 0;
+}
+.runner h1:focus {
+  outline: none;
+}
+.runner .line {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid currentColor;
+  width: 100%;
+  border-radius: 0;
+  font-size: 22px;
+  color: inherit;
+}
+.runner .line:focus-visible {
+  outline: none;
+  box-shadow: 0 2px 0 currentColor;
+}
+.runner .actions {
+  margin-top: 25px;
+}
+.runner button:not(.primary),
+.runner select {
+  color: #202e29;
+}
+.choices {
+  display: grid;
+  gap: 8px;
+}
+.choices button {
+  justify-content: start;
+}
+.choices b {
+  border: 1px solid #aebbaa;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.choices .selected {
+  border: 2px solid var(--accent);
+  background: #e4eddf;
+}
+.runner footer {
+  font-size: 12px;
+  justify-content: space-between;
+}
+.runner.mobile {
+  max-width: 390px;
+  margin: auto;
+}
+.editor .runner {
+  min-height: 65vh;
+  border: 1px solid #d0d6cb;
+  border-radius: 16px;
+  margin-top: 15px;
+}
+.runner p {
+  white-space: pre-wrap;
+}
+.runner h1,
+.runner header {
+  overflow-wrap: anywhere;
+}

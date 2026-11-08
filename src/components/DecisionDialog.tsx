@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-
 type Decision = {
   title: string;
   description: string;

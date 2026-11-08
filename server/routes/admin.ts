@@ -1,0 +1,17 @@
+import { limit } from "../storage/files.ts";
+import { authenticate } from "../middleware/authenticate.ts";
+import express from "express";
+import * as controllers from "../controllers/admin.ts";
+export const router = express.Router();
+router.use(authenticate);
+const raw = express.raw({ type: "application/octet-stream", limit });
+router.get("/forms", controllers.listForms);
+router.post("/forms", controllers.createForm);
+router.get("/forms/:id", controllers.getForm);
+router.delete("/forms/:id", controllers.deleteForm);
+router.put("/forms/:id", controllers.saveForm);
+router.post("/forms/:id/state", controllers.setFormState);
+router.post("/forms/:id/media", raw, controllers.uploadMedia);
+router.get("/files/:file", controllers.getAdminFile);
+router.get("/forms/:id/results", controllers.getResults);
+router.delete("/forms/:id/results/:response", controllers.deleteResponse);

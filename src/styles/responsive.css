@@ -1,0 +1,53 @@
+@media (max-width: 760px) {
+  .editGrid {
+    grid-template-columns: 1fr;
+  }
+  .shell {
+    padding: 24px 16px;
+  }
+  .stats {
+    gap: 6px;
+  }
+  .stats > div {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stats strong {
+    margin-left: 0;
+    align-self: start;
+    font-size: 29px;
+  }
+  .editor aside { position: static; max-height: 34vh; }
+  .form-row { gap: 10px; padding: 14px; }
+  .form-row .actions { flex-wrap: wrap; }
+  .heading { gap: 18px; }
+  .dashboard nav button { padding: 10px 8px; }
+  .stats > div { align-items: flex-start; }
+  .stats span {
+    font-size: 12px;
+  }
+  .bar {
+    flex-wrap: wrap;
+  }
+  .search input {
+    width: 130px;
+  }
+  .profile span {
+    display: none;
+  }
+  .editorTitle {
+    font-size: 28px;
+  }
+  .runner {
+    padding: 20px;
+  }
+  .actions button {
+    font-size: 14px;
+  }
+  .fields {
+    padding: 16px;
+  }
+}
+

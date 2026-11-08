@@ -1,14 +1,3 @@
-import type { Draft } from "../shared/forms.ts";
-export type { Answers, Draft, Kind, Question as Q, Rule } from "../shared/forms.ts";
-
-export type Form = {
-  id: string;
-  slug: string | null;
-  draft: Draft;
-  version: number;
-  revision: number;
-  closed: boolean;
-};
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -49,5 +38,3 @@ export async function upload(url: string, file: File) {
   if (!r.ok) throw Error(data.error);
   return data.id as string;
 }
-export const msg = (e: unknown) =>
-  e instanceof Error ? e.message : "Falló la operación.";
