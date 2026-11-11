@@ -17,7 +17,7 @@ El Compose limita `form_app` a 0,5 CPU (medio núcleo, equivalente al 12,5 % de 
 
 ## Desarrollo
 
-Usá Node 26.13.0 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`. Para desarrollo, iniciá `pnpm dev:api` y `pnpm dev` en dos terminales y abrí el puerto de Vite. Ambos procesos recargan los cambios. Para servir la compilación de producción, ejecutá `pnpm build` y `pnpm start`. `pnpm test` corre las pruebas de lógica.
+Usá Node 26.13.1 y pnpm 12.18.0. Ejecutá `pnpm install --frozen-lockfile`. Para desarrollo, iniciá `pnpm dev:api` y `pnpm dev` en dos terminales y abrí el puerto de Vite. Ambos procesos recargan los cambios. Para servir la compilación de producción, ejecutá `pnpm build` y `pnpm start`. `pnpm test` corre las pruebas de lógica.
 
 | Variable | Uso |
 | --- | --- |
