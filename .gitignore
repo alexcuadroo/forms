@@ -1,6 +1,17 @@
 node_modules/
 dist/
-.env
+coverage/
 uploads/
+
+# Entorno local, incluidos subdirectorios como server/
+.env
+.env.*
+!.env.example
+
+# Herramientas locales y sistema
 .agents/
+skills-lock.json
 .vscode/
+.DS_Store
+Thumbs.db
+*.log
