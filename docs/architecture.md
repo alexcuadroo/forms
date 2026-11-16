@@ -60,7 +60,36 @@ cerca del código que los usa; los elementos compartidos viven fuera de ella.
 - Las migraciones y tareas periódicas pertenecen a `server/index.ts`. Importar
   `createApp()` en una prueba no abre puertos ni modifica una base de datos.
 
-## Verificación
+## Estado y efectos en el cliente
+
+Los valores calculables se derivan al renderizar: preguntas visibles, filtros,
+estado ocupado y progreso. Las acciones de guardar, subir, enviar y navegar
+viven en los hooks de su funcionalidad y se disparan desde eventos.
+Los bloqueos con refs evitan duplicar operaciones antes del siguiente render.
+
+Hay tres efectos con una responsabilidad externa concreta: `useResource`
+sincroniza la petición y cancela al cambiar de recurso; `useRunner` mueve el
+foco al cambiar de paso; `DecisionDialog` abre y cierra el diálogo nativo.
+No se usan efectos para copiar props ni para recalcular estado derivado.
+`useResource` asocia datos y errores a su petición, para que un cambio de URL
+o una recarga nunca muestre el resultado anterior.
+
+`AnswerInput` presenta los controles nativos y su semántica; `Runner` presenta
+el recorrido; `useRunner` coordina respuestas, validación, archivos y envío.
+El formulario público se reinicia por slug y versión, sin copiar props a estado.
+
+## Movimiento y ciclo de vida
+
+Las entradas de preguntas y la confirmación usan sólo opacidad y transformaciones,
+activadas con `prefers-reduced-motion: no-preference`. No hay temporizadores de
+animación ni lógica de negocio esperando eventos de animación. El contenido
+queda visible aunque el navegador no reproduzca las animaciones.
+
+En el servidor, la limpieza espera a que termine una ejecución antes de programar
+la siguiente. SIGTERM y SIGINT dejan de aceptar conexiones, drenan las peticiones
+y cierran el pool; hay un límite de diez segundos para el cierre.
+
+## Alcance de la verificación
 
 `pnpm build` comprueba TypeScript y compila el frontend. `pnpm test` ejecuta las
 pruebas del dominio y las regresiones HTTP. Estas últimas sustituyen PostgreSQL
