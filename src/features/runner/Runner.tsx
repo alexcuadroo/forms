@@ -1,9 +1,11 @@
-import { useRunner } from "./useRunner";
-import { toast } from "sonner";
-import { ArrowRight, ArrowLeft, Check, Upload } from "lucide-react";
-import { options } from "../../../shared/forms.ts";
+import { useId } from "react";
+import { ArrowRight, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { type Draft } from "../../models/forms";
 import { contrast } from "../../utils/contrast";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { AnswerInput } from "./AnswerInput";
+import { useRunner } from "./useRunner";
+
 export function Runner({
   draft,
   slug,
@@ -15,15 +17,35 @@ export function Runner({
   version?: number;
   mobile?: boolean;
 }) {
-  const { answers, index, go, busy, done, names, focus, list, q, image, update, advance, uploadFile } = useRunner(draft, slug, version);
+  const {
+    answers,
+    index,
+    previous,
+    busy,
+    operation,
+    error,
+    done,
+    names,
+    focus,
+    list,
+    q,
+    image,
+    update,
+    advance,
+    uploadFile,
+  } = useRunner(draft, slug, version);
+  const id = useId();
+  const titleId = id + "-question",
+    descriptionId = id + "-description",
+    errorId = id + "-error";
   const bg = draft.theme.image
-    ? `linear-gradient(${draft.theme.background}db,${draft.theme.background}db),url(` +
-      image(draft.theme.image) +
-      ")"
+    ? `linear-gradient(${draft.theme.background}db,${draft.theme.background}db),url(${image(draft.theme.image)})`
     : undefined;
   return (
     <main
-      className={"runner " + (slug ? "runner-protected " : "") + (mobile ? "mobile" : "")}
+      className={
+        "runner " + (slug ? "runner-protected " : "") + (mobile ? "mobile" : "")
+      }
       onContextMenu={slug ? (e) => e.preventDefault() : undefined}
       onCopy={slug ? (e) => e.preventDefault() : undefined}
       onCut={slug ? (e) => e.preventDefault() : undefined}
@@ -40,22 +62,34 @@ export function Runner({
       }
     >
       <header>
-        <span className="mark">F</span>
-        {draft.title}
+        <span className="mark" aria-hidden="true">
+          F
+        </span>
+        <span>{draft.title}</span>
+        {!slug && <span className="preview-badge">Vista previa</span>}
       </header>
       {done ? (
-        <section>
-          <Check />
+        <section className="runner-complete" key="complete">
+          <span className="completion-mark">
+            <Check size={28} aria-hidden="true" />
+          </span>
           <h1 tabIndex={-1} ref={focus}>
             {slug ? "Gracias por participar." : "Fin de la vista previa"}
           </h1>
-          {!slug && <p>Podés volver al editor.</p>}
+          <p>
+            {slug
+              ? "Tu respuesta se envió correctamente. Ya podés cerrar esta página."
+              : "Este recorrido fue de prueba. No se envió ninguna respuesta."}
+          </p>
         </section>
       ) : q ? (
-        <section>
-          <small>
-            Pregunta {index + 1} de {list.length}
-          </small>
+        <section key={q.id} className="runner-question">
+          <div className="question-meta">
+            <span>
+              Pregunta {index + 1} de {list.length}
+            </span>
+            <span>{q.required ? "Obligatoria" : "Opcional"}</span>
+          </div>
           {q.media && (
             <img
               className="qmedia"
@@ -63,118 +97,75 @@ export function Runner({
               alt="Imagen de la pregunta"
             />
           )}
-          <h1 id="question" tabIndex={-1} ref={focus}>
+          <h1 id={titleId} tabIndex={-1} ref={focus}>
             {q.title || "Pregunta sin título"}
-            {q.required && " *"}
           </h1>
-          <p>{q.description}</p>
+          <p id={descriptionId}>
+            {q.description ||
+              (q.type === "multi" ? "Podés elegir más de una opción." : "")}
+          </p>
           <form
-            aria-labelledby="question"
+            aria-labelledby={titleId}
+            noValidate
             onSubmit={(e) => {
               e.preventDefault();
               void advance();
             }}
           >
-            {["short", "url"].includes(q.type) ? (
-              <input
-                key={q.id}
-                type={q.type === "url" ? "url" : "text"}
-                autoCapitalize={q.type === "url" ? "none" : "sentences"}
-                spellCheck={q.type !== "url"}
-                aria-labelledby="question"
-                className="line"
-                placeholder={
-                  q.type === "url" ? "https://" : "Escribí tu respuesta…"
-                }
-                value={answers[q.id] || ""}
-                onChange={(e) => update(e.target.value)}
+            <fieldset className="answer-fieldset" disabled={busy}>
+              <legend className="visually-hidden">Tu respuesta</legend>
+              <AnswerInput
+                q={q}
+                value={answers[q.id]}
+                filename={names[q.id]}
+                error={error}
+                uploading={operation === "upload"}
+                labelledBy={titleId}
+                describedBy={`${descriptionId} ${errorId}`}
+                update={update}
+                uploadFile={uploadFile}
               />
-            ) : q.type === "long" ? (
-              <textarea
-                aria-labelledby="question"
-                className="line"
-                placeholder="Escribí tu respuesta…"
-                value={answers[q.id] || ""}
-                onChange={(e) => update(e.target.value)}
-              />
-            ) : q.type === "select" ? (
-              <select
-                aria-labelledby="question"
-                value={answers[q.id] || ""}
-                onChange={(e) => update(e.target.value)}
-              >
-                <option value="">Elegí una opción</option>
-                {options(q).map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
-            ) : q.type === "file" ? (
-              <label className="upload">
-                <Upload />
-                {names[q.id] && answers[q.id]
-                  ? names[q.id]
-                  : "Seleccionar archivo"}
-                <small>{q.categories.join(" · ")} · Máx. 10 MB</small>
-                <input
-                  disabled={busy}
-                  type="file"
-                  onChange={(e) => void uploadFile(e.target.files?.[0])}
-                />
-              </label>
-            ) : (
-              <div className="choices">
-                {options(q).map((o: string, i: number) => {
-                  const val = answers[q.id],
-                    multi = q.type === "multi",
-                    selected = multi
-                      ? Array.isArray(val) && val.includes(o)
-                      : val === o;
-                  return (
-                    <button
-                      type="button"
-                      className={selected ? "selected" : ""}
-                      aria-pressed={selected}
-                      key={o}
-                      onClick={() => {
-                        const prior = Array.isArray(val) ? val : [];
-                        update(
-                          multi
-                            ? selected
-                              ? prior.filter((x) => x !== o)
-                              : [...prior, o]
-                            : o,
-                        );
-                      }}
-                    >
-                      <b>{i + 1}</b>
-                      {o}
-                      {selected && <Check size={16} />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            </fieldset>
+            <div id={errorId} role="alert" className="answer-error">
+              {error && (
+                <>
+                  <AlertCircle size={18} aria-hidden="true" />
+                  <span>{error}</span>
+                </>
+              )}
+            </div>
             <div className="actions">
               <button type="submit" className="primary" disabled={busy}>
-                {busy
-                  ? "Procesando…"
-                  : index === list.length - 1
-                    ? "Enviar"
-                    : "Continuar"}
-                <ArrowRight size={16} />
+                {busy ? (
+                  <LoadingSpinner
+                    label={
+                      operation === "upload"
+                        ? "Subiendo archivo"
+                        : "Enviando respuesta"
+                    }
+                  />
+                ) : null}
+                {operation === "upload"
+                  ? "Subiendo archivo…"
+                  : operation === "submit"
+                    ? "Enviando…"
+                    : index === list.length - 1
+                      ? slug
+                        ? "Enviar respuesta"
+                        : "Finalizar prueba"
+                      : "Continuar"}
+                {!busy && <ArrowRight size={16} aria-hidden="true" />}
               </button>
               {index > 0 && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    go(index - 1);
-                    toast.dismiss(q.id);
-                  }}
-                >
-                  <ArrowLeft size={16} />
+                <button type="button" disabled={busy} onClick={previous}>
+                  <ArrowLeft size={16} aria-hidden="true" />
                   Volver
                 </button>
+              )}
+              {!q.required && !answers[q.id] && (
+                <span className="answer-hint">
+                  Podés continuar sin responder.
+                </span>
               )}
             </div>
           </form>
@@ -183,8 +174,15 @@ export function Runner({
         <section>Añadí una pregunta para ver el recorrido.</section>
       )}
       <footer>
-        EduForms
-        <progress aria-label="Preguntas completadas" max={list.length || 1} value={done ? list.length : index} />
+        <span>EduForms</span>
+        <span>
+          {done ? "Completado" : `${index} de ${list.length} completadas`}
+        </span>
+        <progress
+          aria-label="Preguntas completadas"
+          max={list.length || 1}
+          value={done ? list.length : index}
+        />
       </footer>
     </main>
   );

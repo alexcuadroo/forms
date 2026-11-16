@@ -1,0 +1,60 @@
+/* Short feedback only; content remains visible when motion is disabled. */
+button {
+  transition:
+    background-color 140ms,
+    border-color 140ms,
+    color 140ms;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .runner-question,
+  .runner-complete {
+    animation: question-enter 220ms ease-out;
+  }
+  .completion-mark {
+    animation: confirmation-enter 280ms ease-out;
+  }
+  .editor > .editGrid,
+  .editor > .theme-layout {
+    animation: panel-enter 160ms ease-out;
+  }
+  .answer-choice {
+    transition:
+      background-color 140ms,
+      border-color 140ms,
+      transform 140ms;
+  }
+  .answer-choice:active {
+    transform: scale(0.99);
+  }
+  button:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+}
+@keyframes question-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes confirmation-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes panel-enter {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}

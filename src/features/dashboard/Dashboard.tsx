@@ -1,19 +1,52 @@
 import { status } from "./formStatus";
 import { useDashboard } from "./useDashboard";
 import { FormRow } from "./FormRow";
-import { PanelsTopLeft, Plus, Search, FileText, ChartNoAxesColumn, Globe, FolderOpen, Database } from "lucide-react";
+import {
+  PanelsTopLeft,
+  Plus,
+  Search,
+  FileText,
+  ChartNoAxesColumn,
+  Globe,
+  FolderOpen,
+  Database,
+} from "lucide-react";
 import { Editor } from "../editor/Editor";
 import { Results } from "../results/Results";
 export function DashboardPage() {
   const actions = useDashboard();
-  const { data, failed, reload, hiddenFormIds, form, result, search, find, filter, filterBy, busy, back, createForm } = actions;
-  if (form) return <Editor form={form} back={back} />;
+  const {
+    data,
+    failed,
+    reload,
+    hiddenFormIds,
+    form,
+    result,
+    search,
+    find,
+    filter,
+    filterBy,
+    busy,
+    back,
+    createForm,
+  } = actions;
+  if (form) return <Editor key={form.id} form={form} back={back} />;
   if (result)
-    return <Results id={result.id} title={result.title} back={back} />;
-  const rows = data?.forms.filter(row => !hiddenFormIds.has(row.id)) || [];
-  const hiddenBytes = data?.forms.reduce(
-    (total, row) => total + (hiddenFormIds.has(row.id) ? row.fileBytes ?? 0 : 0), 0,
-  ) ?? 0;
+    return (
+      <Results
+        key={result.id}
+        id={result.id}
+        title={result.title}
+        back={back}
+      />
+    );
+  const rows = data?.forms.filter((row) => !hiddenFormIds.has(row.id)) || [];
+  const hiddenBytes =
+    data?.forms.reduce(
+      (total, row) =>
+        total + (hiddenFormIds.has(row.id) ? (row.fileBytes ?? 0) : 0),
+      0,
+    ) ?? 0;
   const usedBytes = Math.max(0, Number(data?.storage.used ?? 0) - hiddenBytes);
   const found = rows.filter(
     (r) =>
@@ -27,7 +60,9 @@ export function DashboardPage() {
           <span className="mark">
             <PanelsTopLeft />
           </span>
-          <span>Edu<em>Forms</em></span>
+          <span>
+            Edu<em>Forms</em>
+          </span>
         </div>
         {data && (
           <div className="profile">
@@ -40,32 +75,33 @@ export function DashboardPage() {
         <div className="bar heading">
           <div>
             <h1>Mis formularios</h1>
+            <p>Creá, compartí y seguí cada respuesta desde un mismo lugar.</p>
           </div>
           <button
             className="primary"
             disabled={busy || !data}
-            onClick={() =>
-              void createForm()
-            }
+            onClick={() => void createForm()}
           >
             <Plus />
             Crear formulario
           </button>
         </div>
         <div className="stats">
-          {([
-            [FileText, "Formularios", rows.length],
+          {(
             [
-              Globe,
-              "En recepción",
-              rows.filter((r) => r.version && !r.closed).length,
-            ],
-            [
-              ChartNoAxesColumn,
-              "Respuestas",
-              rows.reduce((n, r) => n + r.responses, 0),
-            ],
-          ] as const).map(([Icon, title, value]) => (
+              [FileText, "Formularios", rows.length],
+              [
+                Globe,
+                "En recepción",
+                rows.filter((r) => r.version && !r.closed).length,
+              ],
+              [
+                ChartNoAxesColumn,
+                "Respuestas",
+                rows.reduce((n, r) => n + r.responses, 0),
+              ],
+            ] as const
+          ).map(([Icon, title, value]) => (
             <div key={title}>
               <Icon />
               <span>{title}</span>
@@ -74,17 +110,26 @@ export function DashboardPage() {
           ))}
         </div>
         <div className="bar library">
-          <h2>Biblioteca</h2>
-          <search><label className="search">
-            <Search />
-            <input
-              placeholder="Buscar formulario"
-              type="search"
-              aria-label="Buscar formulario"
-              value={search}
-              onChange={(e) => find(e.target.value)}
-            />
-          </label></search>
+          <div>
+            <h2>Biblioteca</h2>
+            <p className="library-count">
+              {data
+                ? `${found.length} de ${rows.length} formularios`
+                : "Tus formularios"}
+            </p>
+          </div>
+          <search>
+            <label className="search">
+              <Search />
+              <input
+                placeholder="Buscar formulario"
+                type="search"
+                aria-label="Buscar formulario"
+                value={search}
+                onChange={(e) => find(e.target.value)}
+              />
+            </label>
+          </search>
         </div>
         <nav aria-label="Filtrar formularios">
           {["Todos", "Publicado", "Borrador", "Cerrado"].map((s, i) => (
@@ -98,7 +143,9 @@ export function DashboardPage() {
             </button>
           ))}
         </nav>
-        {failed && <button onClick={reload}>Volver a cargar la biblioteca</button>}
+        {failed && (
+          <button onClick={reload}>Volver a cargar la biblioteca</button>
+        )}
         {!data && !failed && <p role="status">Cargando formularios…</p>}
         {data && !found.length && (
           <div className="empty">
@@ -111,7 +158,16 @@ export function DashboardPage() {
                 ? "Probá con otra búsqueda o filtro."
                 : "Creá tu primer formulario para empezar a recibir respuestas."}
             </p>
-            {rows.length > 0 && <button onClick={() => { find(""); filterBy("Todos"); }}>Limpiar búsqueda y filtros</button>}
+            {rows.length > 0 && (
+              <button
+                onClick={() => {
+                  find("");
+                  filterBy("Todos");
+                }}
+              >
+                Limpiar búsqueda y filtros
+              </button>
+            )}
           </div>
         )}
         <div className="form-list">

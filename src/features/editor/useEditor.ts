@@ -1,6 +1,10 @@
 import { toast } from "sonner";
-import { useState } from "react";
-import { checkDraft, draftIssue, publicationDraft } from "../../../shared/forms.ts";
+import { useRef, useState } from "react";
+import {
+  checkDraft,
+  draftIssue,
+  publicationDraft,
+} from "../../../shared/forms.ts";
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
 import { imagePalette } from "../../utils/imagePalette";
@@ -13,8 +17,9 @@ export function useEditor(form: Form, back: () => void) {
     [at, select] = useState(0),
     [tab, view] = useState("Preguntas"),
     [mobile, device] = useState(false),
-    [busy, wait] = useState(false),
     [operation, setOperation] = useState("");
+  const busy = operation !== "";
+  const lock = useRef(false);
   const q = d.questions[at],
     prior = d.questions.slice(0, at);
   const patch = (p: Partial<Draft>) => {
@@ -41,6 +46,7 @@ export function useEditor(form: Form, back: () => void) {
     edit({ rules: q.rules.map((r, n) => (n === i ? { ...r, ...p } : r)) });
   }
   async function persist(publish: boolean) {
+    if (lock.current) return;
     const issue = draftIssue(d, publish);
     if (issue) {
       if (issue.index !== undefined) {
@@ -51,7 +57,7 @@ export function useEditor(form: Form, back: () => void) {
       return;
     }
     setOperation(publish ? "Publicando…" : "Guardando…");
-    wait(true);
+    lock.current = true;
     try {
       const f = await api<Form>("/admin/forms/" + form.id, "PUT", {
         draft: publish ? publicationDraft(d) : d,
@@ -71,7 +77,10 @@ export function useEditor(form: Form, back: () => void) {
         const link = new URL("/" + f.slug, location.origin).href;
         try {
           await navigator.clipboard.writeText(link);
-          toast.success("Formulario publicado. Enlace copiado.", { id: notice, description: link });
+          toast.success("Formulario publicado. Enlace copiado.", {
+            id: notice,
+            description: link,
+          });
         } catch {
           toast.warning("Formulario publicado. No se pudo copiar el enlace.", {
             id: notice,
@@ -82,14 +91,14 @@ export function useEditor(form: Form, back: () => void) {
     } catch (e) {
       toast.error(msg(e));
     } finally {
-      wait(false);
+      lock.current = false;
       setOperation("");
     }
   }
   async function asset(file: File | undefined, background: boolean) {
-    if (!file) return;
+    if (!file || lock.current) return;
     setOperation("Subiendo imagen…");
-    wait(true);
+    lock.current = true;
     try {
       const id = await upload("/admin/forms/" + form.id + "/media", file);
       if (background) {
@@ -104,8 +113,12 @@ export function useEditor(form: Form, back: () => void) {
           ...current,
           theme: { ...current.theme, ...palette, image: id },
         }));
-        if (palette) toast.success("Colores del fondo y acento adaptados a la imagen.");
-        else toast.warning("Imagen subida. No se pudieron detectar sus colores; podés ajustarlos manualmente.");
+        if (palette)
+          toast.success("Colores del fondo y acento adaptados a la imagen.");
+        else
+          toast.warning(
+            "Imagen subida. No se pudieron detectar sus colores; podés ajustarlos manualmente.",
+          );
       } else {
         edit({ media: id });
         toast.success("Imagen subida.");
@@ -113,9 +126,30 @@ export function useEditor(form: Form, back: () => void) {
     } catch (e) {
       toast.error(msg(e));
     } finally {
-      wait(false);
+      lock.current = false;
       setOperation("");
     }
   }
-  return { ask, saved, d, at, tab, mobile, busy, operation, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device };
+  return {
+    ask,
+    saved,
+    d,
+    at,
+    tab,
+    mobile,
+    busy,
+    operation,
+    q,
+    prior,
+    patch,
+    replace,
+    edit,
+    move,
+    rule,
+    persist,
+    asset,
+    select,
+    view,
+    device,
+  };
 }

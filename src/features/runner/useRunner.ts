@@ -4,15 +4,21 @@ import { visible, answerError } from "../../../shared/forms.ts";
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
 import { type Draft, type Answers, type Q } from "../../models/forms";
-export function useRunner(draft: Draft, slug: string | undefined, version: number) {
+export function useRunner(
+  draft: Draft,
+  slug: string | undefined,
+  version: number,
+) {
   const [answers, setAnswers] = useState<Answers>({}),
     [index, go] = useState(0),
-    [busy, wait] = useState(false),
+    [operation, setOperation] = useState<"" | "upload" | "submit">(""),
+    [error, setError] = useState(""),
     [done, finish] = useState(false),
     [names, setNames] = useState<Record<string, string>>({});
   const [token] = useState(() => crypto.randomUUID()),
     focus = useRef<HTMLHeadingElement>(null),
     lock = useRef(false);
+  const busy = operation !== "";
   const list: Q[] = visible(draft.questions, answers),
     q = list[index];
   useEffect(() => {
@@ -30,6 +36,7 @@ export function useRunner(draft: Draft, slug: string | undefined, version: numbe
       ).catch(() => {});
   };
   function update(value: string | string[]) {
+    setError("");
     const next = { ...answers, [q.id]: value },
       ids = new Set(visible(draft.questions, next).map((p: Q) => p.id));
     for (const p of draft.questions)
@@ -46,7 +53,8 @@ export function useRunner(draft: Draft, slug: string | undefined, version: numbe
     if (lock.current || !q) return;
     const issue = answerError(q, answers[q.id]);
     if (issue) {
-      toast.warning(issue, { id: q.id });
+      setError(issue);
+      focus.current?.focus();
       return;
     }
     if (index < list.length - 1) {
@@ -54,7 +62,7 @@ export function useRunner(draft: Draft, slug: string | undefined, version: numbe
       return;
     }
     lock.current = true;
-    wait(true);
+    setOperation("submit");
     try {
       if (slug)
         await api("/public/" + slug + "/responses", "POST", {
@@ -65,29 +73,54 @@ export function useRunner(draft: Draft, slug: string | undefined, version: numbe
       toast.success(slug ? "Respuesta enviada." : "Vista previa completada.");
       finish(true);
     } catch (e) {
-      toast.error(msg(e));
+      setError(msg(e));
     } finally {
       lock.current = false;
-      wait(false);
+      setOperation("");
     }
   }
   async function uploadFile(file: File | undefined) {
-    if (!file) return;
-    wait(true);
+    if (!file || lock.current || !q) return;
+    setOperation("upload");
     lock.current = true;
     try {
       if (file.size > 1e7) throw Error("El archivo supera los 10 MB.");
-      update(slug
-        ? await upload(`/public/${slug}/upload/${version}/${q.id}/${token}`, file)
-        : crypto.randomUUID(),
+      update(
+        slug
+          ? await upload(
+              `/public/${slug}/upload/${version}/${q.id}/${token}`,
+              file,
+            )
+          : crypto.randomUUID(),
       );
       setNames({ ...names, [q.id]: file.name });
     } catch (error) {
-      toast.error(msg(error));
+      setError(msg(error));
     } finally {
-      wait(false);
+      setOperation("");
       lock.current = false;
     }
   }
-  return { uploadFile, answers, index, go, busy, done, names, focus, list, q, image, update, advance };
+  function previous() {
+    if (lock.current || index === 0) return;
+    setError("");
+    go(index - 1);
+  }
+  return {
+    uploadFile,
+    answers,
+    index,
+    previous,
+    busy,
+    operation,
+    error,
+    done,
+    names,
+    focus,
+    list,
+    q,
+    image,
+    update,
+    advance,
+  };
 }
