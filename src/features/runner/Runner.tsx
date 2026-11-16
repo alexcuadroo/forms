@@ -5,6 +5,7 @@ import { contrast } from "../../utils/contrast";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { AnswerInput } from "./AnswerInput";
 import { useRunner } from "./useRunner";
+import { appName } from "../../config";
 
 export function Runner({
   draft,
@@ -174,7 +175,7 @@ export function Runner({
         <section>Añadí una pregunta para ver el recorrido.</section>
       )}
       <footer>
-        <span>EduForms</span>
+        <span>{appName}</span>
         <span>
           {done ? "Completado" : `${index} de ${list.length} completadas`}
         </span>

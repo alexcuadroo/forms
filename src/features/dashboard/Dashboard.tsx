@@ -1,6 +1,7 @@
 import { status } from "./formStatus";
 import { useDashboard } from "./useDashboard";
 import { FormRow } from "./FormRow";
+import { appName } from "../../config";
 import {
   PanelsTopLeft,
   Plus,
@@ -60,14 +61,12 @@ export function DashboardPage() {
           <span className="mark">
             <PanelsTopLeft />
           </span>
-          <span>
-            Edu<em>Forms</em>
-          </span>
+          <span>{appName}</span>
         </div>
         {data && (
           <div className="profile">
             <span>{data.user.name}</span>
-            <b>{data.user.name?.slice(0, 1) || "E"}</b>
+            <b>{data.user.name?.slice(0, 1) || appName.slice(0, 1)}</b>
           </div>
         )}
       </header>

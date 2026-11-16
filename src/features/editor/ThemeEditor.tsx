@@ -3,6 +3,7 @@ import { fonts } from "../../../shared/forms.ts";
 import type { Draft } from "../../models/forms";
 import { contrast } from "../../utils/contrast";
 import { MediaPicker } from "./MediaPicker";
+import { appName } from "../../config";
 
 export function ThemeEditor({ d, patch, asset }: { d: Draft; patch: (patch: Partial<Draft>) => void; asset: (file: File | undefined, background: boolean) => Promise<void> }) {
   const image = d.theme.image ? `/api/admin/files/${d.theme.image}` : undefined;
@@ -54,7 +55,7 @@ export function ThemeEditor({ d, patch, asset }: { d: Draft; patch: (patch: Part
             <div className="sample-answer">Tu respuesta…</div>
             <span className="sample-button" style={{ background: d.theme.accent, color: contrast(d.theme.accent) }}>Continuar <ArrowRight size={16} aria-hidden="true" /></span>
           </div>
-          <span className="sample-brand">EduForms</span>
+          <span className="sample-brand">{appName}</span>
         </div>
         <p className="field-hint">Probá el recorrido completo en «Vista previa».</p>
       </section>

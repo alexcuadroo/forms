@@ -1,6 +1,9 @@
 services:
   form_app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_APP_NAME: ${VITE_APP_NAME:-Forms}
     restart: unless-stopped
     cpus: 0.5
     mem_limit: 256m
@@ -12,8 +15,10 @@ services:
       PGUSER: forms_app
       PGDATABASE: forms
       PGPASSWORD: ${FORMS_DB_PASSWORD:?Configura FORMS_DB_PASSWORD}
-      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-https://forms.edualex.uy}
-      AUTH_URL: ${AUTH_URL:-https://auth.edualex.uy}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?Configura PUBLIC_ORIGIN}
+      AUTH_URL: ${AUTH_URL:?Configura AUTH_URL}
+      AUTH_APP_SLUG: ${AUTH_APP_SLUG:-forms}
+      AUTH_ALLOWED_ROLES: ${AUTH_ALLOWED_ROLES:-docente,admin}
       UPLOAD_DIR: /data/uploads
     volumes:
       - uploads:/data/uploads

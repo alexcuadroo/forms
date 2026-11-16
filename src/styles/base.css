@@ -85,9 +85,6 @@ nav {
   font-weight: 750;
   letter-spacing: -1px;
 }
-.brand em {
-  font: italic 24px Georgia;
-}
 .mark,
 .profile b {
   display: inline-grid;

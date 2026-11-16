@@ -5,7 +5,8 @@ y Express en el servidor. `shared/` contiene el dominio puro que ambas usan.
 
 ```text
 src/                         Frontend
-  main.tsx                   Monta React y carga los estilos
+  main.tsx                   Monta React, aplica el nombre y carga los estilos
+  config.ts                  Nombre visible del producto
   App.tsx                    Selecciona panel o formulario público
   api/client.ts              Transporte HTTP y cargas binarias
   models/forms.ts            Tipos del cliente
@@ -20,6 +21,7 @@ src/                         Frontend
   utils/                     Utilidades pequeñas
 server/                      API
   index.ts                   Migraciones, limpieza periódica y escucha
+  config.ts                  Origen público, auth y roles permitidos
   app.ts                     Compone Express sin iniciar procesos
   routes/                    Métodos, URL y middleware de cada ruta
   controllers/               Traduce HTTP a llamadas y respuestas

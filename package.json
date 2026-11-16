@@ -1,7 +1,9 @@
 {
-  "name": "eduforms",
+  "name": "forms",
   "private": true,
   "type": "module",
+  "description": "Creador de formularios con ramificación, archivos adjuntos y resultados exportables.",
+  "license": "MIT",
   "packageManager": "pnpm@12.18.0",
   "engines": {
     "node": "26.13.1"

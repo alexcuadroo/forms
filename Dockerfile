@@ -11,6 +11,8 @@ RUN --mount=type=cache,id=forms-pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --prod --store-dir=/pnpm/store
 
 FROM dependencies AS build
+ARG VITE_APP_NAME=Forms
+ENV VITE_APP_NAME=$VITE_APP_NAME
 RUN --mount=type=cache,id=forms-pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir=/pnpm/store
 COPY tsconfig.json vite.config.ts index.html ./
