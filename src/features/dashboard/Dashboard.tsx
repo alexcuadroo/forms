@@ -75,15 +75,16 @@ export function DashboardPage() {
         </div>
         <div className="bar library">
           <h2>Biblioteca</h2>
-          <label className="search">
+          <search><label className="search">
             <Search />
             <input
               placeholder="Buscar formulario"
+              type="search"
               aria-label="Buscar formulario"
               value={search}
               onChange={(e) => find(e.target.value)}
             />
-          </label>
+          </label></search>
         </div>
         <nav aria-label="Filtrar formularios">
           {["Todos", "Publicado", "Borrador", "Cerrado"].map((s, i) => (
@@ -98,7 +99,7 @@ export function DashboardPage() {
           ))}
         </nav>
         {failed && <button onClick={reload}>Volver a cargar la biblioteca</button>}
-        {!data && !failed && <p>Cargando formularios…</p>}
+        {!data && !failed && <p role="status">Cargando formularios…</p>}
         {data && !found.length && (
           <div className="empty">
             <FolderOpen size={38} />
@@ -110,6 +111,7 @@ export function DashboardPage() {
                 ? "Probá con otra búsqueda o filtro."
                 : "Creá tu primer formulario para empezar a recibir respuestas."}
             </p>
+            {rows.length > 0 && <button onClick={() => { find(""); filterBy("Todos"); }}>Limpiar búsqueda y filtros</button>}
           </div>
         )}
         <div className="form-list">
@@ -122,6 +124,7 @@ export function DashboardPage() {
             <Database />
             <strong>Almacenamiento</strong>
             <progress
+              aria-label="Almacenamiento utilizado"
               value={usedBytes}
               max={Number(data.storage.quota)}
             />

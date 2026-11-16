@@ -3,15 +3,7 @@ import { toast } from "sonner";
 import { ArrowRight, ArrowLeft, Check, Upload } from "lucide-react";
 import { options } from "../../../shared/forms.ts";
 import { type Draft } from "../../models/forms";
-function contrast(hex: string) {
-  const channels = [1, 3, 5]
-    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-    .map((n) => (n <= 0.04045 ? n / 12.92 : ((n + 0.055) / 1.055) ** 2.4));
-  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722 >
-    0.179
-    ? "#000"
-    : "#fff";
-}
+import { contrast } from "../../utils/contrast";
 export function Runner({
   draft,
   slug,
@@ -25,7 +17,7 @@ export function Runner({
 }) {
   const { answers, index, go, busy, done, names, focus, list, q, image, update, advance, uploadFile } = useRunner(draft, slug, version);
   const bg = draft.theme.image
-    ? "linear-gradient(#ffffffdb,#ffffffdb),url(" +
+    ? `linear-gradient(${draft.theme.background}db,${draft.theme.background}db),url(` +
       image(draft.theme.image) +
       ")"
     : undefined;
@@ -86,6 +78,9 @@ export function Runner({
             {["short", "url"].includes(q.type) ? (
               <input
                 key={q.id}
+                type={q.type === "url" ? "url" : "text"}
+                autoCapitalize={q.type === "url" ? "none" : "sentences"}
+                spellCheck={q.type !== "url"}
                 aria-labelledby="question"
                 className="line"
                 placeholder={
@@ -189,7 +184,7 @@ export function Runner({
       )}
       <footer>
         EduForms
-        <progress max={list.length || 1} value={done ? list.length : index} />
+        <progress aria-label="Preguntas completadas" max={list.length || 1} value={done ? list.length : index} />
       </footer>
     </main>
   );

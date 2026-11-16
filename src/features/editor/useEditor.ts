@@ -3,6 +3,7 @@ import { useState } from "react";
 import { checkDraft, draftIssue, publicationDraft } from "../../../shared/forms.ts";
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
+import { imagePalette } from "../../utils/imagePalette";
 import { type Form, type Draft, type Q, type Rule } from "../../models/forms";
 import { useDecision } from "../../components/DecisionDialog";
 export function useEditor(form: Form, back: () => void) {
@@ -12,7 +13,8 @@ export function useEditor(form: Form, back: () => void) {
     [at, select] = useState(0),
     [tab, view] = useState("Preguntas"),
     [mobile, device] = useState(false),
-    [busy, wait] = useState(false);
+    [busy, wait] = useState(false),
+    [operation, setOperation] = useState("");
   const q = d.questions[at],
     prior = d.questions.slice(0, at);
   const patch = (p: Partial<Draft>) => {
@@ -48,6 +50,7 @@ export function useEditor(form: Form, back: () => void) {
       toast.warning(issue.message, { id: "draft-validation" });
       return;
     }
+    setOperation(publish ? "Publicando…" : "Guardando…");
     wait(true);
     try {
       const f = await api<Form>("/admin/forms/" + form.id, "PUT", {
@@ -80,20 +83,39 @@ export function useEditor(form: Form, back: () => void) {
       toast.error(msg(e));
     } finally {
       wait(false);
+      setOperation("");
     }
   }
   async function asset(file: File | undefined, background: boolean) {
     if (!file) return;
+    setOperation("Subiendo imagen…");
     wait(true);
     try {
       const id = await upload("/admin/forms/" + form.id + "/media", file);
-      if (background) patch({ theme: { ...d.theme, image: id } });
-      else edit({ media: id });
+      if (background) {
+        setOperation("Adaptando colores…");
+        let palette: Awaited<ReturnType<typeof imagePalette>>;
+        try {
+          palette = await imagePalette(file);
+        } catch {
+          // A decoding failure must not discard an already uploaded image.
+        }
+        set((current) => ({
+          ...current,
+          theme: { ...current.theme, ...palette, image: id },
+        }));
+        if (palette) toast.success("Colores del fondo y acento adaptados a la imagen.");
+        else toast.warning("Imagen subida. No se pudieron detectar sus colores; podés ajustarlos manualmente.");
+      } else {
+        edit({ media: id });
+        toast.success("Imagen subida.");
+      }
     } catch (e) {
       toast.error(msg(e));
     } finally {
       wait(false);
+      setOperation("");
     }
   }
-  return { ask, saved, d, at, tab, mobile, busy, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device };
+  return { ask, saved, d, at, tab, mobile, busy, operation, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device };
 }

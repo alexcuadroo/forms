@@ -44,6 +44,24 @@ select {
   border-radius: 6px;
   color: inherit;
 }
+.fields input[type="color"] {
+  width: 64px;
+  height: 42px;
+  padding: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+.fields input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.fields input[type="color"]::-webkit-color-swatch {
+  border: 1px solid #0002;
+  border-radius: 3px;
+}
+.fields input[type="color"]::-moz-color-swatch {
+  border: 1px solid #0002;
+  border-radius: 3px;
+}
 textarea {
   min-height: 72px;
 }

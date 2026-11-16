@@ -6,10 +6,13 @@ import { ArrowLeft, ArrowUp, ArrowDown, Copy, Trash2, Plus, Eye, Send, Save, Mon
 import { labels, question, choice, categories } from "../../../shared/forms.ts";
 import { type Form, type Kind } from "../../models/forms";
 import { Runner } from "../runner/Runner";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
 export function Editor({ form, back }: { form: Form; back: () => void }) {
-  const { ask, saved, d, at, tab, mobile, busy, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device } = useEditor(form, back);
+  const { ask, saved, d, at, tab, mobile, busy, operation, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device } = useEditor(form, back);
+  const dirty = JSON.stringify(d) !== JSON.stringify(saved.draft);
   return (
     <fieldset disabled={busy} className="editor shell">
+      <legend className="visually-hidden">Editor del formulario</legend>
       <div className="bar">
         <button
           onClick={() => {
@@ -26,13 +29,14 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
           Panel
         </button>
         <div className="actions">
+          <span className="save-status" role="status">{busy ? <><LoadingSpinner label={operation} />{operation}</> : dirty ? "Cambios sin guardar" : "Cambios guardados"}</span>
           <button onClick={() => void persist(false)}>
             <Save />
-            Guardar
+            {operation === "Guardando…" ? operation : "Guardar"}
           </button>
           <button className="primary" onClick={() => void persist(true)}>
             <Send />
-            Publicar
+            {operation === "Publicando…" ? operation : "Publicar"}
           </button>
         </div>
       </div>
@@ -61,7 +65,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
       </nav>
       {tab === "Vista previa" ? (
         <>
-          <div className="actions">
+          <div className="actions preview-devices" role="group" aria-label="Tamaño de vista previa">
             <button onClick={() => device(false)} aria-pressed={!mobile}>
               <Monitor />
               Escritorio
@@ -159,7 +163,7 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
                   onChange={(e) => edit({ description: e.target.value })}
                 />
               </label>
-              <label>
+              <label className="response-type">
                 Tipo de respuesta
                 <select
                   value={q.type}
