@@ -33,7 +33,10 @@ export function MediaPicker({ bg, id, asset, remove }: { bg: boolean; id: string
           }}
         />
       </label>
-      <p id={helpId} className="field-hint">JPG, PNG, GIF, WebP o AVIF · Máx. 10 MB</p>
+      <p id={helpId} className="field-hint">
+        JPG, PNG, GIF, WebP o AVIF · Máx. 10 MB
+        {bg && " · El fondo se optimiza automáticamente a un máximo de 250 KB. Las imágenes animadas se convierten en una imagen fija."}
+      </p>
       <div role="status" className="upload-status">{uploading ? `Subiendo ${filename}. Esperá a que termine para continuar.` : ""}</div>
       {id && (
         <button

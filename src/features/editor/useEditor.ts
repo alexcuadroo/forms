@@ -8,6 +8,7 @@ import {
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
 import { imagePalette } from "../../utils/imagePalette";
+import { compressBackground } from "../../utils/compressBackground";
 import { type Form, type Draft, type Q, type Rule } from "../../models/forms";
 import { useDecision } from "../../components/DecisionDialog";
 export function useEditor(form: Form, back: () => void) {
@@ -97,15 +98,17 @@ export function useEditor(form: Form, back: () => void) {
   }
   async function asset(file: File | undefined, background: boolean) {
     if (!file || lock.current) return;
-    setOperation("Subiendo imagen…");
+    setOperation(background ? "Optimizando fondo…" : "Subiendo imagen…");
     lock.current = true;
     try {
-      const id = await upload("/admin/forms/" + form.id + "/media", file);
+      const optimized = background ? await compressBackground(file) : file;
+      setOperation("Subiendo imagen…");
+      const id = await upload("/admin/forms/" + form.id + "/media", optimized);
       if (background) {
         setOperation("Adaptando colores…");
         let palette: Awaited<ReturnType<typeof imagePalette>>;
         try {
-          palette = await imagePalette(file);
+          palette = await imagePalette(optimized);
         } catch {
           // A decoding failure must not discard an already uploaded image.
         }
