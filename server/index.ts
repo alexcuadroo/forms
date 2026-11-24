@@ -20,7 +20,10 @@ function scheduleCleanup() {
   cleanupTimer.unref();
 }
 scheduleCleanup();
-const server = createApp().listen(Number(process.env.PORT || 3000));
+const port = Number(process.env.PORT || 3000);
+const server = createApp().listen(port, () => {
+  console.log(`API escuchando en http://localhost:${port}`);
+});
 function shutdown() {
   if (stopping) return;
   stopping = true;
