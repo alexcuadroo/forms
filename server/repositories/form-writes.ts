@@ -1,9 +1,9 @@
 import { first, pool } from "../database/connection.ts";
 import type { Database } from "../database/connection.ts";
-import type { Draft } from "../../shared/forms.ts";
+import type { Draft, FormKind } from "../../shared/forms.ts";
 import type { FormRow } from "../models/entities.ts";
-export function insertForm(id: string, owner: string, draft: Draft) {
-  return first<FormRow>(pool, "INSERT INTO forms(id,owner,draft) VALUES($1,$2,$3) RETURNING *", [id, owner, draft]);
+export function insertForm(id: string, owner: string, draft: Draft, kind: FormKind = 'form', db: Database = pool) {
+  return first<FormRow>(db, "INSERT INTO forms(id,owner,draft,kind) VALUES($1,$2,$3,$4) RETURNING *", [id, owner, draft, kind]);
 }
 
 export async function removeForm(db: Database, form: FormRow) {

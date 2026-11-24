@@ -7,7 +7,7 @@ export function PublicForm({ slug }: { slug: string }) {
     failed,
     status,
     reload,
-  } = useResource<{ body: Draft; version: number }>("/public/" + slug, 410);
+  } = useResource<{ body: Draft; version: number; requiresStudentName?: boolean }>("/public/" + slug, 410);
   if (status === 410)
     return (
       <main className="runner runner-closed">
@@ -22,6 +22,7 @@ export function PublicForm({ slug }: { slug: string }) {
       draft={v.body}
       slug={slug}
       version={v.version}
+      requiresStudentName={v.requiresStudentName}
     />
   ) : (
     <main className="shell">

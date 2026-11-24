@@ -3,13 +3,15 @@ import { MediaPicker } from "./MediaPicker";
 import { VisibilityRules } from "./VisibilityRules";
 import { ThemeEditor } from "./ThemeEditor";
 import { ArrowLeft, ArrowUp, ArrowDown, Copy, Trash2, Plus, Eye, Send, Save, Monitor, Smartphone, Palette, List } from "lucide-react";
-import { labels, question, choice, categories } from "../../../shared/forms.ts";
+import { labels, question, choice, categories, options, publicDraft } from "../../../shared/forms.ts";
 import { type Form, type Kind } from "../../models/forms";
 import { Runner } from "../runner/Runner";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ExerciseInput } from '../worksheets/ExerciseInput';
 export function Editor({ form, back }: { form: Form; back: () => void }) {
   const { ask, saved, d, at, tab, mobile, busy, operation, q, prior, patch, replace, edit, move, rule, persist, asset, select, view, device } = useEditor(form, back);
   const dirty = JSON.stringify(d) !== JSON.stringify(saved.draft);
+  const worksheet = form.kind === 'worksheet';
   return (
     <fieldset disabled={busy} className="editor shell">
       <legend className="visually-hidden">Editor del formulario</legend>
@@ -75,26 +77,30 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
               Móvil
             </button>
           </div>
-          <Runner draft={d} mobile={mobile} />
+          <Runner draft={publicDraft(d)} mobile={mobile} requiresStudentName={worksheet} />
         </>
       ) : tab === "Diseño" ? (
         <ThemeEditor d={d} patch={patch} asset={asset} />
       ) : (
         <div className="editGrid">
-          <aside className="card">
+          <aside className="card question-panel" aria-label="Preguntas">
             <h3>Preguntas <span>{d.questions.length}</span></h3>
-            {d.questions.map((p, i) => (
-              <button
-                className={at === i ? "active" : ""}
-                aria-current={at === i ? "step" : undefined}
-                key={p.id}
-                onClick={() => select(i)}
-              >
-                <span className="question-number">{i + 1}</span>
-                <span>{p.title || labels[p.type]}</span>
-              </button>
-            ))}
+            <div className="question-list">
+              {d.questions.map((p, i) => (
+                <button
+                  className={at === i ? "active" : ""}
+                  aria-current={at === i ? "step" : undefined}
+                  key={p.id}
+                  title={p.title || labels[p.type]}
+                  onClick={() => select(i)}
+                >
+                  <span className="question-number">{i + 1}</span>
+                  <span className="question-list-label">{p.title || labels[p.type]}</span>
+                </button>
+              ))}
+            </div>
             <button
+              className="question-add"
               onClick={() =>
                 replace([...d.questions, question()], d.questions.length)
               }
@@ -167,15 +173,17 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
                 Tipo de respuesta
                 <select
                   value={q.type}
+                  disabled={q.type === 'exercise'}
                   onChange={(e) => edit({ type: e.target.value as Kind })}
                 >
-                  {Object.entries(labels).map(([k, v]) => (
+                  {Object.entries(labels).filter(([k]) => (k !== 'info' || worksheet) && (k !== 'exercise' || q.type === 'exercise')).map(([k, v]) => (
                     <option key={k} value={k}>
                       {v}
                     </option>
                   ))}
                 </select>
               </label>
+              {q.exercise && <ExerciseInput exercise={q.exercise} readOnly update={() => {}} />}
               {choice(q.type) && q.type !== "bool" && (
                 <label>
                   Opciones (una por línea)
@@ -208,14 +216,22 @@ export function Editor({ form, back }: { form: Form; back: () => void }) {
                   ))}
                 </div>
               )}
-              <label className="check">
+              {worksheet && choice(q.type) && q.type !== 'multi' && <label>
+                Respuesta correcta
+                <select value={q.grading?.kind === 'exact' ? q.grading.value : ''} onChange={event => edit({ grading: event.target.value ? { kind: 'exact', value: event.target.value } : undefined })}>
+                  <option value="">Revisión docente</option>
+                  {options(q).filter(Boolean).map((option, index) => <option key={`${index}-${option}`} value={option}>{option}</option>)}
+                </select>
+              </label>}
+              {worksheet && q.grading?.kind === 'reference' && <label>Referencia para el docente<textarea value={q.grading.value} onChange={event => edit({ grading: event.target.value.trim() ? { kind: 'reference', value: event.target.value } : undefined })} /></label>}
+              {q.type !== 'info' && <label className="check">
                 <input
                   type="checkbox"
                   checked={q.required}
                   onChange={(e) => edit({ required: e.target.checked })}
                 />
                 Respuesta obligatoria
-              </label>
+              </label>}
               <MediaPicker bg={false} id={q.media} asset={asset} remove={() => edit({ media: "" })} />
               <VisibilityRules q={q} prior={prior} edit={edit} rule={rule} />
             </article>

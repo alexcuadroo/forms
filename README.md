@@ -16,6 +16,7 @@ tipos y validación compartidos entre ambos. La arquitectura se describe en
 - Adjuntos con validación de tipo real, límite de 10 MB y cuotas por creador.
 - Temas con color, tipografía, imagen de fondo y contraste automático.
 - Interfaz accesible, con foco gestionado y soporte de movimiento reducido.
+- Fichas digitales importadas desde DeCabeza, con ejercicios interactivos, entregas identificadas y corrección por versión.
 
 ## Stack
 
@@ -84,6 +85,7 @@ Para servir producción localmente, ejecutá `pnpm build` y luego `pnpm start`.
 | `AUTH_URL` | Origen del servicio de autenticación, sin barra final. |
 | `AUTH_APP_SLUG` | Identificador de la aplicación en el servicio de auth. Por defecto, `forms`. |
 | `AUTH_ALLOWED_ROLES` | Roles con acceso al panel, separados por coma. Por defecto, `docente,admin`. |
+| `FORMS_IMPORT_SECRET` | Secreto compartido con el backend de DeCabeza para habilitar la importación de fichas. |
 | `DATABASE_URL` | Cadena de conexión de PostgreSQL para ejecución directa. |
 | `VITE_APP_NAME` | Nombre visible del producto. Por defecto, `Forms`. Se aplica al compilar el frontend. |
 | `POSTGRES_PASSWORD` | Contraseña del administrador de PostgreSQL en Compose. |

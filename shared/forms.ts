@@ -1,3 +1,6 @@
+import type { WorksheetExercise, WorksheetKey } from './worksheet-contract.ts';
+import { exerciseAnswerValid, isRecord, publicExercise, validExercise, validExerciseKey, validKey } from './worksheet-exercises.ts';
+
 export const labels = {
   short: "Texto breve",
   long: "Texto largo",
@@ -7,7 +10,10 @@ export const labels = {
   bool: "Verdadero / falso",
   url: "Enlace",
   file: "Archivo",
+  info: "Lectura o consigna",
+  exercise: "Ejercicio interactivo",
 };
+export type FormKind = 'form' | 'worksheet';
 export type Kind = keyof typeof labels;
 export type Rule = { source: string; op: string; value: string };
 export type Question = {
@@ -21,13 +27,17 @@ export type Question = {
   media: string;
   mode: string;
   rules: Rule[];
+  exercise?: WorksheetExercise;
+  grading?: WorksheetKey;
 };
 export type Draft = {
   title: string;
+  worksheetVersion?: 1;
   theme: { accent: string; background: string; font: string; image: string };
   questions: Question[];
 };
-export type Answers = Record<string, string | string[]>;
+export type Answer = string | string[] | Record<string, string>;
+export type Answers = Record<string, Answer>;
 
 export const choice = (type: Kind) =>
   ["single", "multi", "select", "bool"].includes(type);
@@ -53,7 +63,9 @@ export const question = (): Question => ({
   rules: [],
 });
 export const operators = (type: Kind) =>
-  type === "file"
+  type === 'info' || type === 'exercise'
+    ? []
+    : type === "file"
     ? ["respondida"]
     : type === "multi"
       ? ["contiene", "respondida"]
@@ -61,19 +73,24 @@ export const operators = (type: Kind) =>
         ? ["es", "respondida"]
         : ["es", "contiene", "respondida"];
 const filled = (v: unknown) =>
-  Array.isArray(v) ? v.length > 0 : typeof v === "string" && !!v.trim();
+  Array.isArray(v) ? v.length > 0 : typeof v === 'string' ? !!v.trim() : isRecord(v) && Object.keys(v).length > 0;
+
+export function questionVisible(q: Question, shown: Set<string>, answers: Answers) {
+  const matches = q.rules.map((rule) => {
+    const value = answers[rule.source];
+    if (!shown.has(rule.source) || !filled(value)) return false;
+    if (rule.op === 'respondida') return true;
+    return rule.op === 'contiene'
+      ? (Array.isArray(value) || typeof value === 'string') && value.includes(rule.value)
+      : value === rule.value;
+  });
+  return !matches.length || (q.mode === 'all' ? matches.every(Boolean) : matches.some(Boolean));
+}
+
 export function visible(questions: Question[], answers: Answers) {
   const shown = new Set<string>();
   return questions.filter((q) => {
-    const matches = q.rules.map((r) => {
-      const v = answers[r.source];
-      if (!shown.has(r.source) || !filled(v)) return false;
-      if (r.op === "respondida") return true;
-      return r.op === "contiene" ? v.includes(r.value) : v === r.value;
-    });
-    const ok =
-      !matches.length ||
-      (q.mode === "all" ? matches.every(Boolean) : matches.some(Boolean));
+    const ok = questionVisible(q, shown, answers);
     if (ok) shown.add(q.id);
     return ok;
   });
@@ -90,7 +107,15 @@ export function publicationDraft(d: Draft): Draft {
   };
 }
 
-export function draftIssue(d: Draft, publishing = false): { message: string; index?: number } | undefined {
+export function publicDraft(draft: Draft): Draft {
+  const { title, theme, questions } = draft;
+  return { title, theme: { accent: theme.accent, background: theme.background, font: theme.font, image: theme.image }, questions: questions.map(q => {
+    const { id, title, description, type, required, options, categories, media, mode, rules } = q;
+    return { id, title, description, type, required, options, categories, media, mode, rules: rules.map(({ source, op, value }) => ({ source, op, value })), ...(q.type === 'exercise' && q.exercise ? { exercise: publicExercise(q.exercise) } : {}) };
+  }) };
+}
+
+export function draftIssue(d: Draft, publishing = false, kind: FormKind = 'form'): { message: string; index?: number } | undefined {
   const str = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
   const asset = (v: unknown) => v === "" || uuid(v);
   if (
@@ -106,8 +131,9 @@ export function draftIssue(d: Draft, publishing = false): { message: string; ind
     !asset(d.theme.image)
   )
     return { message: "Revisá el título y el diseño." };
-  if (publishing && (!d.title.trim() || !d.questions.length))
+  if (publishing && (!d.title.trim() || !d.questions.some(q => q?.type !== 'info')))
     return { message: "Añadí un título y al menos una pregunta." };
+  if (kind === 'worksheet' && d.worksheetVersion !== 1) return { message: 'La versión de la ficha no es compatible.' };
   const prior = new Map<string, Question>();
   for (const [index, q] of d.questions.entries()) {
     const issue = (message: string) => ({ index, message: `Pregunta ${index + 1}: ${message}` });
@@ -117,7 +143,7 @@ export function draftIssue(d: Draft, publishing = false): { message: string; ind
       prior.has(q.id) ||
       !Object.hasOwn(labels, q.type) ||
       !str(q.title, 500) ||
-      !str(q.description, 3000) ||
+      !str(q.description, kind === 'worksheet' ? (q.type === 'info' ? 20000 : 4000) : 3000) ||
       !asset(q.media) ||
       typeof q.required !== "boolean" ||
       !["all", "any"].includes(q.mode) ||
@@ -128,6 +154,14 @@ export function draftIssue(d: Draft, publishing = false): { message: string; ind
       !q.categories.every((c) => categories.includes(c))
     )
       return issue("hay datos inválidos.");
+    if (kind !== 'worksheet' && (q.type === 'info' || q.type === 'exercise' || q.grading !== undefined)) return issue('esta actividad requiere una ficha digital.');
+    if (q.type === 'exercise' && (!validExercise(q.exercise) || !validExerciseKey(q.exercise, q.grading))) return issue('revisá el ejercicio y su clave.');
+    if (q.type !== 'exercise' && q.exercise !== undefined) return issue('este tipo de pregunta no admite tablero.');
+    if (q.grading !== undefined) {
+      if (!validKey(q.grading)) return issue('la clave de corrección es inválida.');
+      if (q.type !== 'exercise' && q.grading.kind === 'items') return issue('la clave requiere un ejercicio interactivo.');
+      if (q.grading.kind === 'exact' && (!choice(q.type) || !options(q).includes(q.grading.value))) return issue('elegí una opción válida como respuesta correcta.');
+    }
     if (publishing) {
       if (!q.title.trim()) return issue("escribí el título.");
       if (choice(q.type)) {
@@ -154,12 +188,15 @@ export function draftIssue(d: Draft, publishing = false): { message: string; ind
     prior.set(q.id, q);
   }
 }
-export function checkDraft(d: Draft, publishing = false) {
-  return draftIssue(d, publishing)?.message;
+export function checkDraft(d: Draft, publishing = false, kind: FormKind = 'form') {
+  return draftIssue(d, publishing, kind)?.message;
 }
 export function answerError(q: Question, v: unknown) {
+  if (q.type === 'info') return undefined;
+  if (q.type === 'exercise' && v !== undefined && (!q.exercise || !exerciseAnswerValid(q.exercise, v))) return 'Respuesta inválida.';
   if (!filled(v))
     return q.required ? "Respondé esta pregunta para continuar." : undefined;
+  if (q.type === 'exercise') return undefined;
   if (q.type === "multi")
     return Array.isArray(v) &&
       new Set(v).size === v.length &&
@@ -177,6 +214,9 @@ export function answerError(q: Question, v: unknown) {
     }
   }
   if (q.type === "file" && !uuid(v)) return "Archivo inválido.";
+}
+export function isAnswered(value: unknown) {
+  return filled(value);
 }
 export const mediaIds = (d: Draft) => [
   ...new Set(

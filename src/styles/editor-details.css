@@ -1,28 +1,32 @@
 .editor { width: 100%; }
 .editorTitle { margin: 18px 0 12px; }
 .editorTitle:hover { background: #eeefe9; }
-.editor aside {
+.editor .question-panel {
+  display: flex;
+  flex-direction: column;
   position: sticky;
   top: 16px;
   max-height: calc(100dvh - 32px);
-  overflow: auto;
   padding: 12px;
 }
-.editor aside h3 {
+.question-panel h3 {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin: 8px 8px 14px;
 }
-.editor aside h3 span { color: #57665a; font-size: 13px; }
-.editor aside button { text-align: left; overflow-wrap: anywhere; }
-.editor aside button:not(:last-child) { border: 0; background: transparent; }
-.editor aside button.active, .editor aside button:hover { background: #e7eee5; }
+.question-panel h3 span { color: #57665a; font-size: 13px; }
+.question-list { min-height: 0; overflow: auto; padding: 4px; }
+.question-list button { border: 0; background: transparent; text-align: left; align-items: start; }
+.question-list button.active, .question-list button:hover { background: #e7eee5; }
+.question-list-label { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .question-number { min-width: 26px; height: 26px; font-size: 12px; }
 .active .question-number { background: #2b5946; color: white; }
-.editor aside button:last-child { margin-top: 10px; justify-content: center; }
+.question-panel .question-add { flex-shrink: 0; margin: 10px 0 0; justify-content: center; }
 .editor .fields { gap: 18px; padding: clamp(18px, 3vw, 34px); background: white; }
 .fields > .bar { border-bottom: 1px solid #e1e4dc; padding-bottom: 16px; }
+.fields > .bar .actions { min-width: 0; }
+.fields > * { min-width: 0; }
 .fields input, .fields textarea, .fields select { min-width: 0; max-width: 100%; }
 .fields .thumb { display: block; margin: 0 auto 12px; }
 .fields details { border-top: 1px solid #d5dbd3; padding-top: 10px; }
@@ -71,6 +75,9 @@
 .save-status { display: inline-flex; align-items: center; gap: 8px; color: #58665e; font-size: 13px; margin-inline-end: 8px; }
 .preview-devices { justify-content: flex-end; }
 .preview-devices [aria-pressed="true"] { background: #e1eadc; border-color: #245e4a; }
+.editor .runner.mobile { padding: 20px 16px; }
+.editor .runner.mobile h1 { font-size: 28px; }
+.editor .runner.mobile header { flex-wrap: wrap; }
 .response-type { max-width: 320px; }
 .editor nav { flex-wrap: nowrap; }
 .editor nav button { white-space: nowrap; }
@@ -86,6 +93,7 @@
   .editor > .bar > .actions { flex: 1; justify-content: flex-end; }
   .save-status { flex-basis: 100%; justify-content: flex-end; margin: 0; }
   .editor nav button { padding: 12px 8px; gap: 6px; font-size: 13px; flex: 1; }
+  .fields .rule > select:first-child { flex-basis: 100%; }
   .theme-colors { gap: 20px; }
   .sample-canvas { padding: 22px; }
   .sample-caption { flex-wrap: wrap; }

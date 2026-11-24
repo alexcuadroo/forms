@@ -11,6 +11,7 @@ import {
   Globe,
   FolderOpen,
   Database,
+  BookOpen,
 } from "lucide-react";
 import { Editor } from "../editor/Editor";
 import { Results } from "../results/Results";
@@ -30,7 +31,14 @@ export function DashboardPage() {
     busy,
     back,
     createForm,
+    kind,
+    selectKind,
+    linkedId,
+    linkedForm,
+    linkFailed,
   } = actions;
+  if (linkedForm) return <Editor key={linkedForm.id} form={linkedForm} back={back} />;
+  if (linkedId) return <main className="shell"><p role={linkFailed ? 'alert' : 'status'}>{linkFailed ? 'No se pudo abrir esta ficha digital.' : 'Abriendo ficha digital…'}</p><button onClick={back}>Volver a Fichas digitales</button></main>;
   if (form) return <Editor key={form.id} form={form} back={back} />;
   if (result)
     return (
@@ -54,6 +62,7 @@ export function DashboardPage() {
       r.title.toLocaleLowerCase().includes(search.toLocaleLowerCase()) &&
       (filter === "Todos" || status(r) === filter),
   );
+  const worksheets = kind === 'worksheet';
   return (
     <>
       <header className="top">
@@ -71,24 +80,27 @@ export function DashboardPage() {
         )}
       </header>
       <main className="shell dashboard">
+        <nav aria-label="Secciones del panel" className="dashboard-sections">
+          <button type="button" className={worksheets ? '' : 'active'} aria-pressed={!worksheets} onClick={() => selectKind('form')}><FileText size={16} /> Formularios</button>
+          <button type="button" className={worksheets ? 'active' : ''} aria-pressed={worksheets} onClick={() => selectKind('worksheet')}><BookOpen size={16} /> Fichas digitales</button>
+        </nav>
         <div className="bar heading">
           <div>
-            <h1>Mis formularios</h1>
-            <p>Creá, compartí y seguí cada respuesta desde un mismo lugar.</p>
+            <h1>{worksheets ? 'Fichas digitales' : 'Mis formularios'}</h1>
           </div>
-          <button
+          {!worksheets && <button
             className="primary"
             disabled={busy || !data}
             onClick={() => void createForm()}
           >
             <Plus />
             Crear formulario
-          </button>
+          </button>}
         </div>
         <div className="stats">
           {(
             [
-              [FileText, "Formularios", rows.length],
+              [FileText, worksheets ? 'Fichas' : 'Formularios', rows.length],
               [
                 Globe,
                 "En recepción",
@@ -113,24 +125,24 @@ export function DashboardPage() {
             <h2>Biblioteca</h2>
             <p className="library-count">
               {data
-                ? `${found.length} de ${rows.length} formularios`
-                : "Tus formularios"}
+                ? `${found.length} de ${rows.length} ${worksheets ? 'fichas' : 'formularios'}`
+                : worksheets ? 'Tus fichas' : 'Tus formularios'}
             </p>
           </div>
           <search>
             <label className="search">
               <Search />
               <input
-                placeholder="Buscar formulario"
+                placeholder={worksheets ? 'Buscar ficha' : 'Buscar formulario'}
                 type="search"
-                aria-label="Buscar formulario"
+                aria-label={worksheets ? 'Buscar ficha' : 'Buscar formulario'}
                 value={search}
                 onChange={(e) => find(e.target.value)}
               />
             </label>
           </search>
         </div>
-        <nav aria-label="Filtrar formularios">
+        <nav aria-label={worksheets ? 'Filtrar fichas' : 'Filtrar formularios'}>
           {["Todos", "Publicado", "Borrador", "Cerrado"].map((s, i) => (
             <button
               key={s}
@@ -145,7 +157,7 @@ export function DashboardPage() {
         {failed && (
           <button onClick={reload}>Volver a cargar la biblioteca</button>
         )}
-        {!data && !failed && <p role="status">Cargando formularios…</p>}
+        {!data && !failed && <p role="status">{worksheets ? 'Cargando fichas…' : 'Cargando formularios…'}</p>}
         {data && !found.length && (
           <div className="empty">
             <FolderOpen size={38} />
@@ -155,7 +167,7 @@ export function DashboardPage() {
             <p>
               {rows.length
                 ? "Probá con otra búsqueda o filtro."
-                : "Creá tu primer formulario para empezar a recibir respuestas."}
+                : worksheets ? 'Enviá una ficha desde DeCabeza para empezar.' : 'Creá tu primer formulario para empezar a recibir respuestas.'}
             </p>
             {rows.length > 0 && (
               <button

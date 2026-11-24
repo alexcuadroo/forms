@@ -1,5 +1,6 @@
 import { createCsvExport } from "./exportCsv";
 import type { ResultsData } from "./types";
+import { answerText } from '../worksheets/answerText';
 import { useState } from "react";
 import { toast } from "sonner";
 import { useDecision } from "../../components/DecisionDialog";
@@ -15,11 +16,15 @@ export function useResults(id: string) {
   const [version, setVersion] = useState("");
   const [onlyFiles, setOnlyFiles] = useState(false);
   const files = new Map(data?.files.map((f) => [f.id, f]));
+  const query = search.trim().toLocaleLowerCase('es');
+  const versions = new Map(data?.versions.map(v => [v.version, v.body]));
   const rows = data?.rows.filter((r) =>
     (!version || r.version === Number(version)) &&
     (!onlyFiles || Object.values(r.answers).some((a) => typeof a === "string" && files.has(a))) &&
-    (!search.trim() || Object.values(r.answers).flat().some((a) =>
-      (files.get(String(a))?.name || String(a)).toLocaleLowerCase("es").includes(search.trim().toLocaleLowerCase("es")))),
+    (!query || r.student_name?.toLocaleLowerCase('es').includes(query) || versions.get(r.version)?.questions.some(q => {
+      const answer = r.answers[q.id];
+      return (typeof answer === 'string' && files.get(answer)?.name || answerText(q, answer)).toLocaleLowerCase('es').includes(query);
+    })),
   ) || [];
   const csv = createCsvExport(data);
 

@@ -16,7 +16,7 @@ export const listForms: RequestHandler<Record<string, string>> = async (
   req,
   res,
 ) => {
-  res.json(await listFormsService(req.user));
+  res.json(await listFormsService(req.user, req.query.kind === 'worksheet' ? 'worksheet' : 'form'));
 };
 export const createForm: RequestHandler<Record<string, string>> = async (
   req,

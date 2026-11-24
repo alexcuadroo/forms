@@ -10,5 +10,20 @@ CREATE INDEX IF NOT EXISTS forms_owner ON forms(owner);
 CREATE INDEX IF NOT EXISTS files_form ON files(form);
 CREATE INDEX IF NOT EXISTS responses_form ON responses(form);
 CREATE TABLE IF NOT EXISTS trash(id uuid PRIMARY KEY);
+ALTER TABLE forms ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'form' CHECK (kind IN ('form', 'worksheet'));
+ALTER TABLE responses ADD COLUMN IF NOT EXISTS student_name text;
+CREATE TABLE IF NOT EXISTS worksheet_imports(
+  id uuid PRIMARY KEY,
+  source text NOT NULL,
+  owner text NOT NULL REFERENCES owners,
+  worksheet_id uuid NOT NULL,
+  snapshot_hash text NOT NULL,
+  copy_key text NOT NULL,
+  form_id uuid UNIQUE REFERENCES forms ON DELETE SET NULL,
+  media jsonb NOT NULL DEFAULT '{}',
+  complete boolean NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(source, owner, worksheet_id, snapshot_hash, copy_key)
+);
 `);
 }

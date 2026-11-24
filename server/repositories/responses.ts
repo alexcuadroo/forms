@@ -16,10 +16,10 @@ export function previousSubmission(db: Database, token: string) {
   return first<{ slug: string }>(db, "SELECT f.slug FROM responses r JOIN forms f ON f.id=r.form WHERE r.id=$1", [token]);
 }
 
-export function insertResponse(db: Database, token: string, form: string, version: number, answers: Answers) {
-  return db.query("INSERT INTO responses(id,form,version,answers) VALUES($1,$2,$3,$4)", [token, form, version, answers]);
+export function insertResponse(db: Database, token: string, form: string, version: number, answers: Answers, studentName?: string) {
+  return db.query("INSERT INTO responses(id,form,version,answers,student_name) VALUES($1,$2,$3,$4,$5)", [token, form, version, answers, studentName ?? null]);
 }
 
-export function attachAnswerFile(db: Database, token: string, file: string | string[], form: string, version: number, question: string) {
+export function attachAnswerFile(db: Database, token: string, file: string, form: string, version: number, question: string) {
   return db.query("UPDATE files SET response=$1,expires=NULL WHERE token=$1 AND id=$2 AND form=$3 AND version=$4 AND question=$5 AND response IS NULL AND expires>now()", [token, file, form, version, question]);
 }

@@ -3,6 +3,7 @@ import { router as admin } from "./routes/admin.ts";
 import { router as publicForms } from "./routes/public.ts";
 import { checkOrigin } from "./middleware/origin.ts";
 import { handleError } from "./middleware/errors.ts";
+import { worksheetImports } from './routes/worksheet-imports.ts';
 import express from "express";
 import path from "node:path";
 export function createApp() {
@@ -10,6 +11,7 @@ export function createApp() {
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
   app.use("/api", checkOrigin);
+  app.use('/api/internal/v1/worksheet-imports', worksheetImports);
   app.use(express.json({ limit: "2mb" }));
   app.get("/api/health", async (_req, res) => {
     await pool.query("SELECT 1");

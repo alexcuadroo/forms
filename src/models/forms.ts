@@ -1,5 +1,5 @@
-import type { Draft } from "../../shared/forms.ts";
-export type { Answers, Draft, Kind, Question as Q, Rule } from "../../shared/forms.ts";
+import type { Draft, FormKind } from "../../shared/forms.ts";
+export type { Answer, Answers, Draft, FormKind, Kind, Question as Q, Rule } from "../../shared/forms.ts";
 
 export type Form = {
   id: string;
@@ -8,4 +8,5 @@ export type Form = {
   version: number;
   revision: number;
   closed: boolean;
+  kind: FormKind;
 };

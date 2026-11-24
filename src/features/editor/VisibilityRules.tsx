@@ -2,8 +2,10 @@ import { Plus, Trash2 } from "lucide-react";
 import { choice, options, operators } from "../../../shared/forms.ts";
 import type { Q, Rule } from "../../models/forms";
 export function VisibilityRules({ q, prior, edit, rule }: { q: Q; prior: Q[]; edit: (patch: Partial<Q>) => void; rule: (index: number, patch: Partial<Rule>) => void }) {
+ const sources = prior.map((question, index) => ({ question, number: index + 1 })).filter(({ question }) => operators(question.type).length > 0);
+ const first = sources[0]?.question;
  return <>
-              {!!prior.length && (
+              {first && (
                 <details open={q.rules.length > 0}>
                   <summary>Condiciones de visibilidad</summary>
                   <label>
@@ -34,9 +36,9 @@ export function VisibilityRules({ q, prior, edit, rule }: { q: Q; prior: Q[]; ed
                             });
                           }}
                         >
-                          {prior.map((p, n) => (
-                            <option value={p.id} key={p.id}>
-                              {n + 1}. {p.title}
+                          {sources.map(({ question, number }) => (
+                            <option value={question.id} key={question.id}>
+                              {number}. {question.title}
                             </option>
                           ))}
                         </select>
@@ -89,8 +91,8 @@ export function VisibilityRules({ q, prior, edit, rule }: { q: Q; prior: Q[]; ed
                         rules: [
                           ...q.rules,
                           {
-                            source: prior[0].id,
-                            op: operators(prior[0].type)[0],
+                            source: first.id,
+                            op: operators(first.type)[0],
                             value: "",
                           },
                         ],

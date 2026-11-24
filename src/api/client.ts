@@ -1,3 +1,18 @@
+import { uuid } from '../../shared/forms.ts';
+
+function returnToWorksheet(login: string) {
+  const here = new URL(location.href);
+  if (here.pathname !== '/' || here.searchParams.get('tab') !== 'worksheets') return login;
+  const url = new URL(login);
+  const target = new URL(url.searchParams.get('redirect') ?? here.origin);
+  target.search = '';
+  target.searchParams.set('tab', 'worksheets');
+  const form = here.searchParams.get('form');
+  if (uuid(form)) target.searchParams.set('form', form);
+  url.searchParams.set('redirect', target.href);
+  return url.href;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -19,7 +34,7 @@ export async function api<T = unknown>(
   });
   const data = await r.json();
   if (!r.ok) {
-    if (data.login) location.assign(data.login);
+    if (data.login) location.assign(returnToWorksheet(data.login));
     throw new ApiError(data.error || "Falló la conexión.", r.status);
   }
   return data;

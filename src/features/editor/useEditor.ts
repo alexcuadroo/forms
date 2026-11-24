@@ -4,6 +4,7 @@ import {
   checkDraft,
   draftIssue,
   publicationDraft,
+  options,
 } from "../../../shared/forms.ts";
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
@@ -27,7 +28,7 @@ export function useEditor(form: Form, back: () => void) {
     set({ ...d, ...p });
   };
   function replace(list: Q[], i = at) {
-    const error = checkDraft({ ...d, questions: list });
+    const error = checkDraft({ ...d, questions: list }, false, form.kind);
     if (error) {
       toast.warning(error);
       return;
@@ -36,7 +37,10 @@ export function useEditor(form: Form, back: () => void) {
     select(Math.min(i, Math.max(0, list.length - 1)));
   }
   function edit(p: Partial<Q>) {
-    replace(d.questions.map((x, i) => (i === at ? { ...x, ...p } : x)));
+    const next = { ...q, ...p };
+    if (p.type && p.type !== q.type) { next.grading = undefined; next.exercise = undefined; }
+    if (next.grading?.kind === 'exact' && !options(next).includes(next.grading.value)) next.grading = undefined;
+    replace(d.questions.map((x, i) => i === at ? next : x));
   }
   function move(by: number) {
     const list = [...d.questions];
@@ -48,7 +52,7 @@ export function useEditor(form: Form, back: () => void) {
   }
   async function persist(publish: boolean) {
     if (lock.current) return;
-    const issue = draftIssue(d, publish);
+    const issue = draftIssue(d, publish, form.kind);
     if (issue) {
       if (issue.index !== undefined) {
         view("Preguntas");

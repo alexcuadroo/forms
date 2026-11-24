@@ -1,6 +1,6 @@
 @media (max-width: 760px) {
   .editGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .shell {
     padding: 24px 16px;
@@ -19,7 +19,7 @@
     align-self: start;
     font-size: 29px;
   }
-  .editor aside { position: static; max-height: 34vh; }
+  .editor .question-panel { position: static; max-height: max(210px, 34dvh); }
   .form-row { gap: 10px; padding: 14px; }
   .form-row .actions { flex-wrap: wrap; }
   .heading { gap: 18px; }

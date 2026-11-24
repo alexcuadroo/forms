@@ -9,13 +9,14 @@ import { randomInt } from "node:crypto";
 import { retainMedia } from "../services/file-lifecycle.ts";
 import { owned } from "../repositories/forms.ts";
 export async function saveForm(id: string, user: User, input: { revision: number; publish?: boolean; draft: Draft }) {
+  if (!input || !Number.isInteger(input.revision) || (input.publish !== undefined && typeof input.publish !== 'boolean')) fail(400, 'Borrador inválido.');
   const { revision, publish } = input;
-  const error = checkDraft(input.draft, publish);
-  if (error) fail(400, error);
-  const draft: Draft = publish ? publicationDraft(input.draft) : input.draft;
   return (
     await tx(async (db) => {
       const f = await owned(id, user.id, db, true);
+      const error = checkDraft(input.draft, publish, f.kind);
+      if (error) fail(400, error);
+      const draft: Draft = publish ? publicationDraft(input.draft) : input.draft;
       if (f.revision !== revision)
         fail(409, "Otro editor guardó cambios. Volvé a abrir el formulario.");
       await retainMedia(db, f.id, draft);

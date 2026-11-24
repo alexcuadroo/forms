@@ -2,7 +2,9 @@ import { createApp } from "./app.ts";
 import { pool } from "./database/connection.ts";
 import { migrate } from "./database/migrate.ts";
 import { cleanup } from "./services/file-lifecycle.ts";
+import { cleanupWorksheetImports } from './services/worksheet-import.ts';
 await migrate();
+await cleanupWorksheetImports();
 await cleanup();
 // Schedule the next pass after completion so slow cleanup jobs never overlap.
 let stopping = false;
@@ -10,6 +12,7 @@ let cleanupTimer: ReturnType<typeof setTimeout>;
 function scheduleCleanup() {
   cleanupTimer = setTimeout(async () => {
     try {
+      await cleanupWorksheetImports();
       await cleanup();
     } catch (error) {
       console.error(error);

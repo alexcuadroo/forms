@@ -9,6 +9,7 @@ export function useResource<T>(path: string, silentStatus?: number) {
   const key = JSON.stringify([path, revision, silentStatus]);
   const [resource, setResource] = useState<Resource<T>>({ key, failed: false });
   useEffect(() => {
+    if (!path) return;
     const controller = new AbortController();
     async function load() {
       try {

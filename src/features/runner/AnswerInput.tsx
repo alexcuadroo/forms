@@ -1,18 +1,19 @@
 import { useId } from "react";
 import { Upload } from "lucide-react";
 import { options } from "../../../shared/forms.ts";
-import type { Q } from "../../models/forms";
+import type { Answer, Q } from "../../models/forms";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ExerciseInput } from '../worksheets/ExerciseInput';
 
 type Props = {
   q: Q;
-  value: string | string[] | undefined;
+  value: Answer | undefined;
   filename?: string;
   error: string;
   uploading: boolean;
   labelledBy: string;
   describedBy: string;
-  update: (value: string | string[]) => void;
+  update: (value: Answer) => void;
   uploadFile: (file: File | undefined) => Promise<void>;
 };
 export function AnswerInput({
@@ -33,6 +34,8 @@ export function AnswerInput({
     "aria-invalid": !!error,
     "aria-required": q.required,
   };
+  if (q.type === 'info') return null;
+  if (q.type === 'exercise' && q.exercise) return <div aria-describedby={describedBy}><ExerciseInput exercise={q.exercise} value={value} update={update} /></div>;
   if (q.type === "short" || q.type === "url")
     return (
       <input

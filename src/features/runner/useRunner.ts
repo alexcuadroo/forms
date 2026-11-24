@@ -1,20 +1,23 @@
 import { toast } from "sonner";
 import { useState, useEffect, useRef } from "react";
 import { visible, answerError } from "../../../shared/forms.ts";
+import { cleanStudentName } from '../../../shared/worksheet-exercises.ts';
 import { api, upload } from "../../api/client";
 import { msg } from "../../utils/errors";
-import { type Draft, type Answers, type Q } from "../../models/forms";
+import { type Draft, type Answer, type Answers, type Q } from "../../models/forms";
 export function useRunner(
   draft: Draft,
   slug: string | undefined,
   version: number,
+  requiresStudentName = false,
 ) {
   const [answers, setAnswers] = useState<Answers>({}),
-    [index, go] = useState(0),
+    [index, go] = useState(requiresStudentName ? -1 : 0),
     [operation, setOperation] = useState<"" | "upload" | "submit">(""),
     [error, setError] = useState(""),
     [done, finish] = useState(false),
-    [names, setNames] = useState<Record<string, string>>({});
+    [names, setNames] = useState<Record<string, string>>({}),
+    [studentName, setStudentName] = useState('');
   const [token] = useState(() => crypto.randomUUID()),
     focus = useRef<HTMLHeadingElement>(null),
     lock = useRef(false);
@@ -35,7 +38,7 @@ export function useRunner(
         "DELETE",
       ).catch(() => {});
   };
-  function update(value: string | string[]) {
+  function update(value: Answer) {
     setError("");
     const next = { ...answers, [q.id]: value },
       ids = new Set(visible(draft.questions, next).map((p: Q) => p.id));
@@ -50,7 +53,14 @@ export function useRunner(
     toast.dismiss(q.id);
   }
   async function advance() {
-    if (lock.current || !q) return;
+    if (lock.current) return;
+    if (index === -1) {
+      if (!cleanStudentName(studentName)) { setError('Ingresá un nombre válido para el estudiante (hasta 120 caracteres).'); return; }
+      setError('');
+      go(0);
+      return;
+    }
+    if (!q) return;
     const issue = answerError(q, answers[q.id]);
     if (issue) {
       setError(issue);
@@ -69,6 +79,7 @@ export function useRunner(
           token,
           version,
           answers,
+          ...(requiresStudentName ? { studentName: cleanStudentName(studentName) } : {}),
         });
       toast.success(slug ? "Respuesta enviada." : "Vista previa completada.");
       finish(true);
@@ -102,7 +113,7 @@ export function useRunner(
     }
   }
   function previous() {
-    if (lock.current || index === 0) return;
+    if (lock.current || index <= (requiresStudentName ? -1 : 0)) return;
     setError("");
     go(index - 1);
   }
@@ -122,5 +133,7 @@ export function useRunner(
     image,
     update,
     advance,
+    studentName,
+    updateStudentName: (name: string) => { setStudentName(name); setError(''); },
   };
 }

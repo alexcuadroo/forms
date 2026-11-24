@@ -6,10 +6,19 @@ import { useDecision } from "../../components/DecisionDialog";
 import { toast } from "sonner";
 import { useResource } from "../../hooks/useResource";
 import type { Row, Dashboard } from "./types";
+import type { FormKind } from '../../models/forms';
+import { uuid } from '../../../shared/forms.ts';
 export function useDashboard() {
   const ask = useDecision();
   const lock = useRef(false);
-  const { data, failed, reload } = useResource<Dashboard>("/admin/forms");
+  const params = new URLSearchParams(location.search);
+  const [kind, setKind] = useState<FormKind>(() => params.get('tab') === 'worksheets' ? 'worksheet' : 'form');
+  const [linkedId, setLinkedId] = useState(() => {
+    const id = params.get('form');
+    return kind === 'worksheet' && uuid(id) ? id : '';
+  });
+  const { data, failed, reload } = useResource<Dashboard>(kind === 'worksheet' ? '/admin/forms?kind=worksheet' : '/admin/forms');
+  const linked = useResource<Form>(linkedId ? '/admin/forms/' + linkedId : '', 404);
   const [hiddenFormIds, setHiddenFormIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -34,8 +43,17 @@ export function useDashboard() {
   const back = () => {
     edit(undefined);
     results(undefined);
+    setLinkedId('');
+    if (params.has('form')) history.replaceState(null, '', kind === 'worksheet' ? '/?tab=worksheets' : '/');
     reload();
   };
+  function selectKind(next: FormKind) {
+    setKind(next);
+    setLinkedId('');
+    find('');
+    filterBy('Todos');
+    history.replaceState(null, '', next === 'worksheet' ? '/?tab=worksheets' : '/');
+  }
   async function deleteForm(row: Row) {
     setHiddenFormIds((ids) => new Set(ids).add(row.id));
     try {
@@ -98,5 +116,10 @@ export function useDashboard() {
     run,
     back,
     deleteForm,
+    kind,
+    selectKind,
+    linkedId,
+    linkedForm: linked.data?.kind === 'worksheet' ? linked.data : undefined,
+    linkFailed: linked.failed || Boolean(linked.data && linked.data.kind !== 'worksheet'),
   };
 }

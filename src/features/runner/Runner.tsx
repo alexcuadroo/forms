@@ -12,11 +12,13 @@ export function Runner({
   slug,
   version = 0,
   mobile = false,
+  requiresStudentName = false,
 }: {
   draft: Draft;
   slug?: string;
   version?: number;
   mobile?: boolean;
+  requiresStudentName?: boolean;
 }) {
   const {
     answers,
@@ -34,7 +36,9 @@ export function Runner({
     update,
     advance,
     uploadFile,
-  } = useRunner(draft, slug, version);
+    studentName,
+    updateStudentName,
+  } = useRunner(draft, slug, version, requiresStudentName);
   const id = useId();
   const titleId = id + "-question",
     descriptionId = id + "-description",
@@ -83,13 +87,22 @@ export function Runner({
               : "Este recorrido fue de prueba. No se envió ninguna respuesta."}
           </p>
         </section>
+      ) : index === -1 ? (
+        <section className="runner-question" key="student-name">
+          <h1 tabIndex={-1} ref={focus}>{draft.title}</h1>
+          <form className="worksheet-identification" onSubmit={event => { event.preventDefault(); void advance(); }}>
+            <label>Nombre del estudiante<input className="line" type="text" autoComplete="off" required maxLength={240} value={studentName} aria-invalid={!!error} aria-describedby={errorId} onChange={event => updateStudentName(event.target.value)} /></label>
+            <p id={errorId} className="answer-error" role="alert">{error}</p>
+            <div className="actions"><button className="primary" type="submit">Empezar <ArrowRight size={16} aria-hidden="true" /></button></div>
+          </form>
+        </section>
       ) : q ? (
-        <section key={q.id} className="runner-question">
+        <section key={q.id} className={q.exercise?.kind === 'word_search' ? 'runner-question runner-word-search' : 'runner-question'}>
           <div className="question-meta">
             <span>
-              Pregunta {index + 1} de {list.length}
+              {requiresStudentName ? 'Paso' : 'Pregunta'} {index + 1} de {list.length}
             </span>
-            <span>{q.required ? "Obligatoria" : "Opcional"}</span>
+            {q.type !== 'info' && <span>{q.required ? "Obligatoria" : "Opcional"}</span>}
           </div>
           {q.media && (
             <img
@@ -101,7 +114,7 @@ export function Runner({
           <h1 id={titleId} tabIndex={-1} ref={focus}>
             {q.title || "Pregunta sin título"}
           </h1>
-          <p id={descriptionId}>
+          <p id={descriptionId} className={requiresStudentName ? 'worksheet-context' : undefined}>
             {q.description ||
               (q.type === "multi" ? "Podés elegir más de una opción." : "")}
           </p>
@@ -113,7 +126,7 @@ export function Runner({
               void advance();
             }}
           >
-            <fieldset className="answer-fieldset" disabled={busy}>
+            {q.type !== 'info' && <fieldset className="answer-fieldset" disabled={busy}>
               <legend className="visually-hidden">Tu respuesta</legend>
               <AnswerInput
                 q={q}
@@ -126,7 +139,7 @@ export function Runner({
                 update={update}
                 uploadFile={uploadFile}
               />
-            </fieldset>
+            </fieldset>}
             <div id={errorId} role="alert" className="answer-error">
               {error && (
                 <>
@@ -157,13 +170,13 @@ export function Runner({
                       : "Continuar"}
                 {!busy && <ArrowRight size={16} aria-hidden="true" />}
               </button>
-              {index > 0 && (
+              {(index > 0 || requiresStudentName) && (
                 <button type="button" disabled={busy} onClick={previous}>
                   <ArrowLeft size={16} aria-hidden="true" />
                   Volver
                 </button>
               )}
-              {!q.required && !answers[q.id] && (
+              {q.type !== 'info' && !q.required && !answers[q.id] && (
                 <span className="answer-hint">
                   Podés continuar sin responder.
                 </span>
@@ -177,12 +190,12 @@ export function Runner({
       <footer>
         <span>{appName}</span>
         <span>
-          {done ? "Completado" : `${index} de ${list.length} completadas`}
+          {done ? "Completado" : `${Math.max(0, index)} de ${list.length} completadas`}
         </span>
         <progress
           aria-label="Preguntas completadas"
           max={list.length || 1}
-          value={done ? list.length : index}
+          value={done ? list.length : Math.max(0, index)}
         />
       </footer>
     </main>
